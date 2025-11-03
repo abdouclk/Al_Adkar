@@ -20,7 +20,7 @@
 
 ### 📱 About
 
-**Al-Adkar** is a comprehensive Islamic companion app built with Flutter, featuring:
+Al-Adkar is a comprehensive Islamic companion app built with Flutter, featuring:
 
 - ⏰ **Precise Prayer Times** – Location-based calculations with next-prayer notifications
 - 🌅 **Morning & Evening Adhkar** – Scheduled reminders with exact alarm support (Android 12+)
@@ -110,8 +110,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Islamic content sourced from authentic Quran and Sunnah references
 - Prayer time calculations via the [adhan](https://pub.dev/packages/adhan) package
-- UI inspiration from modern Islamic apps
-
 ---
 
 ## Arabic
@@ -210,7 +208,6 @@ flutter build apk --release
 
 - المحتوى الإسلامي من مصادر موثوقة من القرآن والسنة
 - حسابات أوقات الصلاة عبر حزمة [adhan](https://pub.dev/packages/adhan)
-- الإلهام من تطبيقات إسلامية حديثة
 
 </div>
 
