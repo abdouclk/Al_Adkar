@@ -1,0 +1,2 @@
+C:/Users/PC/Desktop/FLUTTER_PROJECTS/Al_Adkar1/android/app/.cxx/RelWithDebInfo/22a1n542/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/PC/Desktop/FLUTTER_PROJECTS/Al_Adkar1/android/app/.cxx/RelWithDebInfo/22a1n542/x86_64/CMakeFiles/rebuild_cache.dir

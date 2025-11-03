@@ -1,0 +1,49 @@
+workflows:
+  ios_release:
+    name: iOS Release to TestFlight
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      vars:
+        # Use the current bundle identifier from Xcode project
+        BUNDLE_ID: "com.example.flutterApplication1"
+    cache:
+      cache_paths:
+        - ~/.pub-cache
+        - ios/Pods
+    scripts:
+      - name: Flutter pub get
+        script: flutter pub get
+      - name: Clean build
+        script: flutter clean
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install
+      - name: Build IPA (Flutter)
+        script: |
+          # Build iOS IPA; code signing will be handled by Codemagic automatic signing
+          flutter build ipa --release
+    ios_signing:
+      app_store_connect:
+        # Provide these as Codemagic Environment variables (secure)
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        # Enable automatic code signing for the bundle id
+        use_automatic_signing: true
+        bundle_identifier: $BUNDLE_ID
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive
+      - flutter_drive.log
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+        # Optionally, specify beta groups you created in App Store Connect
+        # beta_groups: ["Internal Testers"]

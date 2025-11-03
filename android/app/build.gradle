@@ -1,0 +1,92 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader("UTF-8") { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
+if (flutterVersionCode == null) {
+    flutterVersionCode = "1"
+}
+
+def flutterVersionName = localProperties.getProperty("flutter.versionName")
+if (flutterVersionName == null) {
+    flutterVersionName = "1.0"
+}
+
+// The Google Services plugin is applied conditionally below only if
+// a google-services.json file exists in the app module. This avoids
+// failing the build for developers who don't use Firebase or haven't
+// added the file yet.
+
+android {
+    namespace = "com.example.al_adkar"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        // Use Java 17 to avoid JDK 21 deprecation warnings for source/target 8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        // Enable core library desugaring for libraries that require newer Java APIs
+        coreLibraryDesugaringEnabled = true
+    }
+
+    kotlinOptions {
+        // Ensure Kotlin compiles to a compatible JVM target
+        jvmTarget = "17"
+    }
+
+    defaultConfig {
+        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        applicationId = "com.example.al_adkar"
+        // You can update the following values to match your application needs.
+        // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutterVersionCode.toInteger()
+        versionName = flutterVersionName
+    }
+
+    buildTypes {
+        release {
+            // Enable code shrinking, obfuscation, and optimization
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            
+            // TODO: Add your own signing config for the release build.
+            // Signing with the debug keys for now, so `flutter run --release` works.
+            signingConfig = signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    // Required for core library desugaring (e.g., some AARs require newer Java APIs)
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'
+    // Material Components library required by Material themes used in styles.xml
+    implementation 'com.google.android.material:material:1.9.0'
+    // Provide Play Core classes referenced by Flutter's PlayStore deferred components embedding
+    implementation 'com.google.android.play:core:1.10.3'
+}
+
+// Apply Google Services plugin only when google-services.json is present
+if (file("${projectDir}/google-services.json").exists()) {
+    apply plugin: 'com.google.gms.google-services'
+} else {
+    println("google-services.json not found in ${projectDir}; skipping com.google.gms.google-services plugin.")
+}
