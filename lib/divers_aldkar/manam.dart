@@ -49,29 +49,30 @@ class Manam extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-              DhikrCard(
-              text: 'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ غَضَبِهِ وَعِقَابِهِ، وَشَرِّ عِبَادِهِ، وَمِنْ هَمَزَاتِ الشَّيَاطِينِ وَأَنْ يَحْضُرُونِ',
+            DhikrCard(
+              text:
+                  'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ غَضَبِهِ وَعِقَابِهِ، وَشَرِّ عِبَادِهِ، وَمِنْ هَمَزَاتِ الشَّيَاطِينِ وَأَنْ يَحْضُرُونِ',
               category: 'دعاء الرؤيا',
-                fontSize: 22,
-                textColor: widgetColors[0],
-                containerColor: containerColors[0],
-              ),
-              SizedBox(height: 20),
-              DhikrCard(
-              text: 'إذا رأى ما يُحب فليحمد الله، وإذا رأى ما يكره فليستعذ بالله من شرها ولا يذكرها لأحد فإنها لن تضره',
+              fontSize: 22,
+              textColor: widgetColors[0],
+              containerColor: containerColors[0],
+            ),
+            SizedBox(height: 20),
+            DhikrCard(
+              text:
+                  'إذا رأى ما يُحب فليحمد الله، وإذا رأى ما يكره فليستعذ بالله من شرها ولا يذكرها لأحد فإنها لن تضره',
               category: 'دعاء الرؤيا',
-                fontSize: 20,
-                textColor: widgetColors[1],
-                containerColor: containerColors[1],
-              ),
-              SizedBox(height: 20),
-              SizedBox(height: 20),
+              fontSize: 20,
+              textColor: widgetColors[1],
+              containerColor: containerColors[1],
+            ),
+            SizedBox(height: 20),
+            SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
-
 }
 
 class CustomSearchDelegate extends SearchDelegate<String> {

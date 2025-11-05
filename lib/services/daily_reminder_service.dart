@@ -240,7 +240,8 @@ class DailyReminderService {
     // Normalize to local midnight to avoid fractional day issues
     final todayLocal = DateTime(now.year, now.month, now.day);
     // Days since Unix epoch (local)
-    final epochDays = todayLocal.millisecondsSinceEpoch ~/ Duration.millisecondsPerDay;
+    final epochDays =
+        todayLocal.millisecondsSinceEpoch ~/ Duration.millisecondsPerDay;
     // Deterministic daily index
     final index = epochDays % quranDuas.length;
     return quranDuas[index];

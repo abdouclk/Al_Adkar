@@ -49,29 +49,30 @@ class Dayne extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-              DhikrCard(
-              text: 'اللَّهُمَّ اكْفِنِي بِحَلاَلِكَ عَنْ حَرَامِكَ، وَأَغْنِنِي بِفَضْلِكَ عَمَّنْ سِوَاكَ',
+            DhikrCard(
+              text:
+                  'اللَّهُمَّ اكْفِنِي بِحَلاَلِكَ عَنْ حَرَامِكَ، وَأَغْنِنِي بِفَضْلِكَ عَمَّنْ سِوَاكَ',
               category: 'دعاء الدين',
-                fontSize: 24,
-                textColor: widgetColors[0],
-                containerColor: containerColors[0],
-              ),
-              SizedBox(height: 20),
-              DhikrCard(
-              text: 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الهَمِّ وَالحَزَنِ، وَالعَجْزِ وَالكَسَلِ، وَالبُخْلِ وَالجُبْنِ، وَضَلَعِ الدَّيْنِ، وَغَلَبَةِ الرِّجَالِ',
+              fontSize: 24,
+              textColor: widgetColors[0],
+              containerColor: containerColors[0],
+            ),
+            SizedBox(height: 20),
+            DhikrCard(
+              text:
+                  'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الهَمِّ وَالحَزَنِ، وَالعَجْزِ وَالكَسَلِ، وَالبُخْلِ وَالجُبْنِ، وَضَلَعِ الدَّيْنِ، وَغَلَبَةِ الرِّجَالِ',
               category: 'دعاء الدين',
-                fontSize: 22,
-                textColor: widgetColors[1],
-                containerColor: containerColors[1],
-              ),
-              SizedBox(height: 20),
-              SizedBox(height: 20),
+              fontSize: 22,
+              textColor: widgetColors[1],
+              containerColor: containerColors[1],
+            ),
+            SizedBox(height: 20),
+            SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
-
 }
 
 class CustomSearchDelegate extends SearchDelegate<String> {

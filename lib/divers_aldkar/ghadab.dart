@@ -49,29 +49,28 @@ class Ghadab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-              DhikrCard(
+            DhikrCard(
               text: 'أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ',
               category: 'الدعاء عند الغضب',
-                fontSize: 26,
-                textColor: widgetColors[0],
-                containerColor: containerColors[0],
-              ),
-              SizedBox(height: 20),
-              DhikrCard(
+              fontSize: 26,
+              textColor: widgetColors[0],
+              containerColor: containerColors[0],
+            ),
+            SizedBox(height: 20),
+            DhikrCard(
               text: 'وصية النبي صلى الله عليه وسلم: لا تَغْضَب',
               category: 'الدعاء عند الغضب',
-                fontSize: 24,
-                textColor: widgetColors[1],
-                containerColor: containerColors[1],
-              ),
-              SizedBox(height: 20),
-              SizedBox(height: 20),
+              fontSize: 24,
+              textColor: widgetColors[1],
+              containerColor: containerColors[1],
+            ),
+            SizedBox(height: 20),
+            SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
-
 }
 
 class CustomSearchDelegate extends SearchDelegate<String> {

@@ -49,29 +49,29 @@ class Marid extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-              DhikrCard(
-              text: 'أَسْأَلُ اللَّهَ العَظِيمَ، رَبَّ العَرْشِ العَظِيمِ، أَنْ يَشْفِيَكَ (سبع مرات)',
+            DhikrCard(
+              text:
+                  'أَسْأَلُ اللَّهَ العَظِيمَ، رَبَّ العَرْشِ العَظِيمِ، أَنْ يَشْفِيَكَ (سبع مرات)',
               category: 'دعاء المريض',
-                fontSize: 24,
-                textColor: widgetColors[0],
-                containerColor: containerColors[0],
-              ),
-              SizedBox(height: 20),
-              DhikrCard(
+              fontSize: 24,
+              textColor: widgetColors[0],
+              containerColor: containerColors[0],
+            ),
+            SizedBox(height: 20),
+            DhikrCard(
               text: 'لاَ بَأْسَ، طَهُورٌ إِنْ شَاءَ اللَّهُ',
               category: 'دعاء المريض',
-                fontSize: 26,
-                textColor: widgetColors[1],
-                containerColor: containerColors[1],
-              ),
-              SizedBox(height: 20),
-              SizedBox(height: 20),
+              fontSize: 26,
+              textColor: widgetColors[1],
+              containerColor: containerColors[1],
+            ),
+            SizedBox(height: 20),
+            SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
-
 }
 
 class CustomSearchDelegate extends SearchDelegate<String> {

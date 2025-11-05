@@ -49,29 +49,30 @@ class Imane extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-              DhikrCard(
-              text: 'آمَنْتُ بِاللَّهِ وَمَلاَئِكَتِهِ وَكُتُبِهِ وَرُسُلِهِ وَاليَوْمِ الآخِرِ وَبِالقَدَرِ خَيْرِهِ وَشَرِّهِ مِنَ اللَّهِ تَعَالَى',
+            DhikrCard(
+              text:
+                  'آمَنْتُ بِاللَّهِ وَمَلاَئِكَتِهِ وَكُتُبِهِ وَرُسُلِهِ وَاليَوْمِ الآخِرِ وَبِالقَدَرِ خَيْرِهِ وَشَرِّهِ مِنَ اللَّهِ تَعَالَى',
               category: 'تجديد الإيمان',
-                fontSize: 24,
-                textColor: widgetColors[0],
-                containerColor: containerColors[0],
-              ),
-              SizedBox(height: 20),
-              DhikrCard(
-              text: 'رَضِيتُ بِاللَّهِ رَبًّا، وَبِالإِسْلاَمِ دِينًا، وَبِمُحَمَّدٍ صلى الله عليه وسلم نَبِيًّا',
+              fontSize: 24,
+              textColor: widgetColors[0],
+              containerColor: containerColors[0],
+            ),
+            SizedBox(height: 20),
+            DhikrCard(
+              text:
+                  'رَضِيتُ بِاللَّهِ رَبًّا، وَبِالإِسْلاَمِ دِينًا، وَبِمُحَمَّدٍ صلى الله عليه وسلم نَبِيًّا',
               category: 'تجديد الإيمان',
-                fontSize: 26,
-                textColor: widgetColors[1],
-                containerColor: containerColors[1],
-              ),
-              SizedBox(height: 20),
-              SizedBox(height: 20),
+              fontSize: 26,
+              textColor: widgetColors[1],
+              containerColor: containerColors[1],
+            ),
+            SizedBox(height: 20),
+            SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
-
 }
 
 class CustomSearchDelegate extends SearchDelegate<String> {

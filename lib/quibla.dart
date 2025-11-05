@@ -169,17 +169,21 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      CircularProgressIndicator(color: Color(0xFF0B6623)),
+                                      CircularProgressIndicator(
+                                          color: Color(0xFF0B6623)),
                                       SizedBox(height: 8),
                                       Text(
                                         'جاري تحديد اتجاه القبلة...',
-                                        style: GoogleFonts.cairo(fontSize: 14, color: Color(0xFF0B6623)),
+                                        style: GoogleFonts.cairo(
+                                            fontSize: 14,
+                                            color: Color(0xFF0B6623)),
                                       ),
                                     ],
                                   ),
                                 );
                               }
-                              final qiblah = snapshot.data!.qiblah; // degrees clockwise from North
+                              final qiblah = snapshot
+                                  .data!.qiblah; // degrees clockwise from North
                               return Transform.rotate(
                                 angle: qiblah * math.pi / 180.0,
                                 child: SizedBox(
@@ -256,7 +260,8 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                                 if (!snapshot.hasData) return SizedBox.shrink();
                                 final q = snapshot.data!;
                                 return Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: Color(0xFF0B6623),
                                     borderRadius: BorderRadius.circular(12),
@@ -510,12 +515,13 @@ class ElegantCompassPainter extends CustomPainter {
       canvas.drawLine(start, end, tickPaint);
     }
 
-  // Draw a Kaaba icon at the top (North)
+    // Draw a Kaaba icon at the top (North)
     final kaabaIconSize = 32.0;
     final topCenter = Offset(center.dx, center.dy - (radius - 18));
     canvas.save();
     // Optionally, you can draw a subtle highlight circle behind the icon
-    canvas.drawCircle(topCenter, kaabaIconSize/2 + 6, Paint()..color = Color(0xFFF3C04D).withOpacity(0.18));
+    canvas.drawCircle(topCenter, kaabaIconSize / 2 + 6,
+        Paint()..color = Color(0xFFF3C04D).withOpacity(0.18));
     // Draw the Kaaba icon (using built-in icon)
     TextPainter(
       text: TextSpan(
@@ -529,7 +535,10 @@ class ElegantCompassPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )
       ..layout()
-      ..paint(canvas, Offset(topCenter.dx - kaabaIconSize/2, topCenter.dy - kaabaIconSize/2));
+      ..paint(
+          canvas,
+          Offset(topCenter.dx - kaabaIconSize / 2,
+              topCenter.dy - kaabaIconSize / 2));
     canvas.restore();
   }
 

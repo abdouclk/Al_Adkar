@@ -36,7 +36,7 @@ import 'package:al_adkar/services/notification_helper.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+    FlutterLocalNotificationsPlugin();
 
 Future<void> initNotifications() async {
   // Timezone init
@@ -47,7 +47,8 @@ Future<void> initNotifications() async {
     final offset = now.timeZoneOffset;
     final hours = offset.inHours;
     // Map offset to Etc/GMT format (note reversed sign convention)
-    final String etc = 'Etc/GMT${hours == 0 ? '' : (hours > 0 ? '-$hours' : '+${hours.abs()}')}';
+    final String etc =
+        'Etc/GMT${hours == 0 ? '' : (hours > 0 ? '-$hours' : '+${hours.abs()}')}';
     tz.setLocalLocation(tz.getLocation(etc));
   } catch (_) {
     tz.setLocalLocation(tz.UTC);
@@ -128,10 +129,10 @@ Future<void> initNotifications() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize in background; never block app launch
   _initializeAppServices();
-  
+
   runApp(const MyApp());
 }
 

@@ -49,29 +49,29 @@ class Nahr extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-              DhikrCard(
-              text: 'بِسْمِ اللَّهِ، وَاللَّهُ أَكْبَرُ، اللَّهُمَّ مِنْكَ وَلَكَ',
+            DhikrCard(
+              text:
+                  'بِسْمِ اللَّهِ، وَاللَّهُ أَكْبَرُ، اللَّهُمَّ مِنْكَ وَلَكَ',
               category: 'دعاء النهر',
-                fontSize: 26,
-                textColor: widgetColors[0],
-                containerColor: containerColors[0],
-              ),
-              SizedBox(height: 20),
-              DhikrCard(
+              fontSize: 26,
+              textColor: widgetColors[0],
+              containerColor: containerColors[0],
+            ),
+            SizedBox(height: 20),
+            DhikrCard(
               text: 'اللَّهُمَّ تَقَبَّلْ مِنِّي',
               category: 'دعاء النهر',
-                fontSize: 28,
-                textColor: widgetColors[1],
-                containerColor: containerColors[1],
-              ),
-              SizedBox(height: 20),
-              SizedBox(height: 20),
+              fontSize: 28,
+              textColor: widgetColors[1],
+              containerColor: containerColors[1],
+            ),
+            SizedBox(height: 20),
+            SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
-
 }
 
 class CustomSearchDelegate extends SearchDelegate<String> {

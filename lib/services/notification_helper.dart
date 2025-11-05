@@ -7,11 +7,11 @@ class NotificationHelper {
   static void attach(FlutterLocalNotificationsPlugin plugin) {
     _plugin = plugin;
   }
+
   // Ensure notifications permission is granted (Android 13+)
   static Future<bool> ensureNotificationPermissions() async {
-    final androidImpl = _plugin
-        ?.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final androidImpl = _plugin?.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
     final enabled = await androidImpl?.areNotificationsEnabled() ?? true;
     if (enabled) return true;
     final granted = await androidImpl?.requestNotificationsPermission() ?? true;
@@ -19,9 +19,8 @@ class NotificationHelper {
   }
 
   static Future<void> createPrayerChannelIfNeeded() async {
-    final androidImpl = _plugin
-        ?.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final androidImpl = _plugin?.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
     await androidImpl?.createNotificationChannel(
       const AndroidNotificationChannel(
         'prayer_times',

@@ -705,7 +705,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final intent = AndroidIntent(
       action: 'android.settings.APP_NOTIFICATION_SETTINGS',
       arguments: <String, dynamic>{
-        'android.provider.extra.APP_PACKAGE': 'com.example.al_adkar',
+        'android.provider.extra.APP_PACKAGE': 'com.abdouclk.aladkar',
       },
     );
     intent.launch();
@@ -715,7 +715,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!Platform.isAndroid) return;
     final intent = AndroidIntent(
       action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
-      package: 'com.example.al_adkar',
+      package: 'com.abdouclk.aladkar',
     );
     intent.launch();
   }
@@ -746,7 +746,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       AndroidIntent(
         action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
-        data: 'package:com.example.al_adkar',
+        data: 'package:com.abdouclk.aladkar',
       ),
     ];
 
