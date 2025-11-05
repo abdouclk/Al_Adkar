@@ -18,6 +18,13 @@ class NotificationHelper {
     return granted;
   }
 
+  // Request exact alarm permission (Android 12+)
+  static Future<void> requestExactAlarmsPermission() async {
+    final androidImpl = _plugin?.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await androidImpl?.requestExactAlarmsPermission();
+  }
+
   static Future<void> createPrayerChannelIfNeeded() async {
     final androidImpl = _plugin?.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
