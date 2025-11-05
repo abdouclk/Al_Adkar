@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'widgets/app_scaffold.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
+import 'package:geolocator/geolocator.dart';
 
 class Quibla extends StatefulWidget {
   const Quibla({Key? key}) : super(key: key);
@@ -15,6 +16,10 @@ class Quibla extends StatefulWidget {
 
 class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
+  double? _manualQiblahAngle;
+  Position? _currentPosition;
+  String _locationInfo = 'جاري تحديد الموقع...';
+  bool _isCalibrating = false;
 
   @override
   void initState() {
@@ -23,7 +28,147 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
       vsync: this,
       duration: Duration(seconds: 3),
     )..repeat();
-    // flutter_qiblah manages sensors and location internally via its stream
+    _getLocationAndCalculateQibla();
+  }
+
+  Future<void> _getLocationAndCalculateQibla() async {
+    try {
+      // Request location permission if needed
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _locationInfo = 'يرجى السماح بالوصول للموقع لحساب اتجاه القبلة بدقة';
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _locationInfo = 'تم رفض إذن الموقع نهائياً. فعّله من الإعدادات';
+        });
+        return;
+      }
+
+      // Get current position with high accuracy
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 15),
+      );
+
+      setState(() {
+        _currentPosition = position;
+        _locationInfo = 'خط العرض: ${position.latitude.toStringAsFixed(4)}\n'
+                       'خط الطول: ${position.longitude.toStringAsFixed(4)}';
+      });
+
+      // Calculate manual qibla as backup/verification
+      _manualQiblahAngle = _calculateQiblaDirection(
+        position.latitude, 
+        position.longitude
+      );
+
+    } catch (e) {
+      setState(() {
+        _locationInfo = 'خطأ في تحديد الموقع: ${e.toString()}';
+      });
+    }
+  }
+
+  // Manual qibla calculation using spherical trigonometry
+  double _calculateQiblaDirection(double lat, double lng) {
+    // Kaaba coordinates (Mecca)
+    const double kaabaLat = 21.4225;
+    const double kaabaLng = 39.8262;
+    
+    // Convert to radians
+    final double lat1 = lat * math.pi / 180;
+    final double lng1 = lng * math.pi / 180;
+    final double lat2 = kaabaLat * math.pi / 180;
+    final double lng2 = kaabaLng * math.pi / 180;
+    
+    final double deltaLng = lng2 - lng1;
+    
+    // Calculate qibla direction using spherical trigonometry
+    final double y = math.sin(deltaLng) * math.cos(lat2);
+    final double x = math.cos(lat1) * math.sin(lat2) - 
+                     math.sin(lat1) * math.cos(lat2) * math.cos(deltaLng);
+    
+    double qibla = math.atan2(y, x) * 180 / math.pi;
+    
+    // Normalize to 0-360 degrees
+    if (qibla < 0) {
+      qibla += 360;
+    }
+    
+    return qibla;
+  }
+
+  // Calculate distance to Mecca using Haversine formula
+  double _calculateDistanceToMecca(Position position) {
+    const double kaabaLat = 21.4225;
+    const double kaabaLng = 39.8262;
+    
+    return Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      kaabaLat,
+      kaabaLng,
+    ) / 1000; // Convert to kilometers
+  }
+
+  void _calibrateCompass() {
+    setState(() {
+      _isCalibrating = true;
+    });
+    
+    // Show calibration dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('معايرة البوصلة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.screen_rotation, size: 64, color: Color(0xFF0B6623)),
+            SizedBox(height: 16),
+            Text(
+              'لمعايرة البوصلة، حرك جهازك في شكل رقم 8 عدة مرات',
+              style: GoogleFonts.cairo(fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 12),
+            Text(
+              '• تأكد من عدم وجود معادن قريبة\n• ابتعد عن الأجهزة الكهربائية\n• استخدم الجهاز في الهواء الطلق إن أمكن',
+              style: GoogleFonts.cairo(fontSize: 14, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _isCalibrating = false;
+              });
+            },
+            child: Text('تم', style: GoogleFonts.cairo(color: Color(0xFF0B6623))),
+          ),
+        ],
+      ),
+    );
+    
+    // Auto-close after 10 seconds
+    Future.delayed(Duration(seconds: 10), () {
+      if (mounted && _isCalibrating) {
+        Navigator.of(context, rootNavigator: true).pop();
+        setState(() {
+          _isCalibrating = false;
+        });
+      }
+    });
   }
 
   @override
@@ -147,24 +292,44 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                               painter: ElegantCompassPainter(),
                             ),
                           ),
-                          // Qibla needle driven by flutter_qiblah
+                          // Qibla needle driven by flutter_qiblah with manual fallback
                           StreamBuilder<QiblahDirection>(
                             stream: FlutterQiblah.qiblahStream,
                             builder: (context, snapshot) {
-                              if (snapshot.hasError) {
-                                return Positioned(
-                                  bottom: 12,
-                                  child: Text(
-                                    'تحقق من تفعيل الموقع وحساس البوصلة ثم أعد المحاولة',
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 13,
-                                      color: Colors.grey[700],
-                                    ),
-                                    textAlign: TextAlign.center,
+                              if (snapshot.hasError && _manualQiblahAngle == null) {
+                                return Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.error, color: Colors.red, size: 48),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'تحقق من تفعيل الموقع وحساس البوصلة',
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 13,
+                                          color: Colors.grey[700],
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      SizedBox(height: 8),
+                                      ElevatedButton(
+                                        onPressed: _getLocationAndCalculateQibla,
+                                        child: Text('إعادة المحاولة', style: GoogleFonts.cairo()),
+                                      ),
+                                    ],
                                   ),
                                 );
                               }
-                              if (!snapshot.hasData) {
+                              
+                              double qiblahAngle;
+                              bool useManualCalculation = false;
+                              
+                              if (snapshot.hasData) {
+                                qiblahAngle = snapshot.data!.qiblah;
+                              } else if (_manualQiblahAngle != null) {
+                                qiblahAngle = _manualQiblahAngle!;
+                                useManualCalculation = true;
+                              } else {
                                 return Center(
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -182,15 +347,16 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                                   ),
                                 );
                               }
-                              final qiblah = snapshot
-                                  .data!.qiblah; // degrees clockwise from North
+
                               return Transform.rotate(
-                                angle: qiblah * math.pi / 180.0,
+                                angle: qiblahAngle * math.pi / 180.0,
                                 child: SizedBox(
                                   width: 220,
                                   height: 220,
                                   child: CustomPaint(
-                                    painter: NeedlePainter(),
+                                    painter: NeedlePainter(
+                                      isManualCalculation: useManualCalculation
+                                    ),
                                   ),
                                 ),
                               );
@@ -251,28 +417,40 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                               size: 26,
                             ),
                           ),
-                          // Live readout from flutter_qiblah
+                          // Live readout from flutter_qiblah with manual backup
                           Positioned(
                             bottom: 10,
                             child: StreamBuilder<QiblahDirection>(
                               stream: FlutterQiblah.qiblahStream,
                               builder: (context, snapshot) {
-                                if (!snapshot.hasData) return SizedBox.shrink();
-                                final q = snapshot.data!;
+                                String displayText = '';
+                                if (snapshot.hasData) {
+                                  final q = snapshot.data!;
+                                  displayText = 'بوصلة: ${q.qiblah.toStringAsFixed(0)}°';
+                                  if (_manualQiblahAngle != null) {
+                                    displayText += '\nحسابي: ${_manualQiblahAngle!.toStringAsFixed(0)}°';
+                                  }
+                                } else if (_manualQiblahAngle != null) {
+                                  displayText = 'القبلة: ${_manualQiblahAngle!.toStringAsFixed(0)}°';
+                                } else {
+                                  return SizedBox.shrink();
+                                }
+                                
                                 return Container(
                                   padding: EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
+                                      horizontal: 12, vertical: 8),
                                   decoration: BoxDecoration(
                                     color: Color(0xFF0B6623),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
-                                    'القبلة: ${q.qiblah.toStringAsFixed(0)}°',
+                                    displayText,
                                     style: GoogleFonts.cairo(
-                                      fontSize: 16,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
                                     ),
+                                    textAlign: TextAlign.center,
                                   ),
                                 );
                               },
@@ -301,19 +479,111 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                     ],
                   ),
                 ),
-                SizedBox(height: 30),
+                SizedBox(height: 20),
+                // Calibration and refresh buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _calibrateCompass,
+                      icon: Icon(Icons.tune, color: Colors.white),
+                      label: Text(
+                        'معايرة البوصلة',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF0B6623),
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: _getLocationAndCalculateQibla,
+                      icon: Icon(Icons.refresh, color: Colors.white),
+                      label: Text(
+                        'تحديث الموقع',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF1A8B3D),
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
                 _buildInfoCard(
                   icon: Icons.location_on,
-                  title: 'الموقع',
-                  value: 'مكة المكرمة',
-                  subtitle: 'المملكة العربية السعودية',
+                  title: 'الموقع الحالي',
+                  value: _currentPosition != null 
+                    ? '${_currentPosition!.latitude.toStringAsFixed(4)}, ${_currentPosition!.longitude.toStringAsFixed(4)}'
+                    : 'جاري التحديد...',
+                  subtitle: _currentPosition != null
+                    ? 'دقة: ±${_currentPosition!.accuracy.toStringAsFixed(0)} متر'
+                    : _locationInfo,
                 ),
                 SizedBox(height: 15),
                 _buildInfoCard(
                   icon: Icons.straighten,
-                  title: 'المسافة التقريبية',
-                  value: 'حسب موقعك',
-                  subtitle: 'استخدم البوصلة للتوجيه الدقيق',
+                  title: 'المسافة إلى مكة',
+                  value: _currentPosition != null 
+                    ? '${_calculateDistanceToMecca(_currentPosition!).toStringAsFixed(0)} كم'
+                    : 'غير محدد',
+                  subtitle: 'المسافة المباشرة عبر الكرة الأرضية',
+                ),
+                SizedBox(height: 15),
+                // Accuracy tips card
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.info, color: Colors.orange, size: 24),
+                          SizedBox(width: 8),
+                          Text(
+                            'نصائح لتحسين دقة البوصلة',
+                            style: GoogleFonts.cairo(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        '• ابتعد عن الأجهزة الكهربائية والمعادن\n'
+                        '• استخدم الجهاز في مكان مفتوح\n'
+                        '• تأكد من تفعيل الموقع و البوصلة\n'
+                        '• قارن بين القراءة الحسابية والبوصلة\n'
+                        '• استخدم معايرة البوصلة عند الحاجة',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          color: Colors.orange.shade700,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 SizedBox(height: 30),
                 Container(
@@ -547,6 +817,10 @@ class ElegantCompassPainter extends CustomPainter {
 }
 
 class NeedlePainter extends CustomPainter {
+  final bool isManualCalculation;
+
+  NeedlePainter({this.isManualCalculation = false});
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
@@ -565,7 +839,9 @@ class NeedlePainter extends CustomPainter {
 
     final needlePaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = const Color(0xFFD32F2F); // red tip
+      ..color = isManualCalculation 
+        ? const Color(0xFFFF9800) // orange for manual calculation
+        : const Color(0xFFD32F2F); // red for compass
 
     canvas.drawPath(needlePath, needlePaint);
 
