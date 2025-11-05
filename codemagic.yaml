@@ -7,8 +7,8 @@ workflows:
       xcode: latest
       cocoapods: default
       vars:
-        # Use the current bundle identifier from Xcode project
-        BUNDLE_ID: "com.example.flutterApplication1"
+        # Use the updated bundle identifier for Al Adkar app
+        BUNDLE_ID: "com.abdouclk.aladkar"
     cache:
       cache_paths:
         - ~/.pub-cache
