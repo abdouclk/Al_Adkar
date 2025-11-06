@@ -595,7 +595,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             details,
             uiLocalNotificationDateInterpretation:
                 UILocalNotificationDateInterpretation.absoluteTime,
-            androidScheduleMode: AndroidScheduleMode.alarmClock,
+            androidScheduleMode: AndroidScheduleMode.exact,
           );
 
           if (!mounted) return;
@@ -692,7 +692,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               details,
               uiLocalNotificationDateInterpretation:
                   UILocalNotificationDateInterpretation.absoluteTime,
-              androidScheduleMode: AndroidScheduleMode.alarmClock,
+              androidScheduleMode: AndroidScheduleMode.exact,
             );
             if (kDebugMode) print('DEBUG: Notification scheduled successfully with ID 9011');
           } catch (e) {
@@ -769,9 +769,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             fontSize: 15, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 4),
                     Text(
-                      'إذا لم تعمل الإشعارات المجدولة، يجب السماح بالمنبّهات الدقيقة من إعدادات النظام',
+                      '⚠️ هام: يجب الضغط على "السماح بالمنبّهات الدقيقة" أدناه ثم تفعيل الإذن من إعدادات النظام',
                       style: GoogleFonts.cairo(
-                          fontSize: 11, color: Colors.red.shade700),
+                          fontSize: 11, 
+                          color: Colors.red.shade700,
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -847,11 +849,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _openExactAlarmSettings() {
     if (!Platform.isAndroid) return;
-    final intent = AndroidIntent(
-      action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
-      package: 'com.abdouclk.aladkar',
-    );
-    intent.launch();
+    // Try to open the alarms & reminders settings page
+    try {
+      final intent = AndroidIntent(
+        action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
+      );
+      intent.launch();
+    } catch (e) {
+      // Fallback to general alarm settings
+      try {
+        final fallback = AndroidIntent(
+          action: 'android.settings.SETTINGS',
+        );
+        fallback.launch();
+      } catch (e2) {
+        if (kDebugMode) print('Failed to open settings: $e2');
+      }
+    }
   }
 
   void _openBatteryOptimization() {
