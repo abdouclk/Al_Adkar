@@ -259,20 +259,24 @@ Future<void> scheduleMorning(
   // Cancel any existing morning notification first
   await flutterLocalNotificationsPlugin.cancel(1001);
   
-  // Schedule WITHOUT matchDateTimeComponents - schedule single instance
-  await flutterLocalNotificationsPlugin.zonedSchedule(
-    1001,
-    'تذكير الأذكار',
-    'اضغط لقراءة أذكار الصباح',
-    scheduledTime,
-    details,
-    payload: 'sabah',
-    uiLocalNotificationDateInterpretation:
-        UILocalNotificationDateInterpretation.absoluteTime,
-    androidScheduleMode: AndroidScheduleMode.exact,
-    matchDateTimeComponents: DateTimeComponents.time,
-  );
-  if (kDebugMode) debugPrint('Morning notification scheduled successfully at $scheduledTime');
+  try {
+    // Schedule WITHOUT matchDateTimeComponents - it's unreliable on many devices
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      1001,
+      'تذكير الأذكار',
+      'اضغط لقراءة أذكار الصباح',
+      scheduledTime,
+      details,
+      payload: 'sabah',
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+    if (kDebugMode) debugPrint('Morning notification scheduled successfully at $scheduledTime');
+  } catch (e) {
+    if (kDebugMode) debugPrint('Failed to schedule morning notification: $e');
+  }
 }
 
 Future<void> scheduleEvening(
@@ -300,20 +304,24 @@ Future<void> scheduleEvening(
   // Cancel any existing evening notification first
   await flutterLocalNotificationsPlugin.cancel(1002);
   
-  // Schedule WITHOUT matchDateTimeComponents - schedule single instance
-  await flutterLocalNotificationsPlugin.zonedSchedule(
-    1002,
-    'تذكير الأذكار',
-    'اضغط لقراءة أذكار المساء',
-    scheduledTime,
-    details,
-    payload: 'massae',
-    uiLocalNotificationDateInterpretation:
-        UILocalNotificationDateInterpretation.absoluteTime,
-    androidScheduleMode: AndroidScheduleMode.exact,
-    matchDateTimeComponents: DateTimeComponents.time,
-  );
-  if (kDebugMode) debugPrint('Evening notification scheduled successfully at $scheduledTime');
+  try {
+    // Schedule WITHOUT matchDateTimeComponents - it's unreliable on many devices
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      1002,
+      'تذكير الأذكار',
+      'اضغط لقراءة أذكار المساء',
+      scheduledTime,
+      details,
+      payload: 'massae',
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+    if (kDebugMode) debugPrint('Evening notification scheduled successfully at $scheduledTime');
+  } catch (e) {
+    if (kDebugMode) debugPrint('Failed to schedule evening notification: $e');
+  }
 }
 
 Future<void> cancelMorning() async =>

@@ -61,16 +61,21 @@ class NotificationHelper {
     );
     final details = NotificationDetails(android: androidDetails);
 
-    await _plugin!.zonedSchedule(
-      id,
-      title,
-      body,
-      tzTime,
-      details,
-      payload: payload,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      androidScheduleMode: AndroidScheduleMode.exact,
-    );
+    try {
+      await _plugin!.zonedSchedule(
+        id,
+        title,
+        body,
+        tzTime,
+        details,
+        payload: payload,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    } catch (e) {
+      // Silently fail if exact alarm permission not granted
+      print('Failed to schedule notification: $e');
+    }
   }
 }

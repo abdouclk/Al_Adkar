@@ -575,7 +575,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return;
           }
 
-          // Schedule a notification 10 seconds from now using exactAllowWhileIdle
+          // Schedule a notification 10 seconds from now
           final when = tz.TZDateTime.now(tz.local).add(Duration(seconds: 10));
           const AndroidNotificationDetails androidDetails =
               AndroidNotificationDetails(
@@ -587,26 +587,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
           );
           const NotificationDetails details =
               NotificationDetails(android: androidDetails);
-          await flutterLocalNotificationsPlugin.zonedSchedule(
-            9010,
-            'اختبار الإشعارات (مجدول)',
-            'سيظهر هذا الإشعار بعد 10 ثوانٍ إن كانت الأذونات مفعلة',
-            when,
-            details,
-            uiLocalNotificationDateInterpretation:
-                UILocalNotificationDateInterpretation.absoluteTime,
-            androidScheduleMode: AndroidScheduleMode.exact,
-          );
+          
+          try {
+            await flutterLocalNotificationsPlugin.zonedSchedule(
+              9010,
+              'اختبار الإشعارات (مجدول)',
+              'سيظهر هذا الإشعار بعد 10 ثوانٍ إن كانت الأذونات مفعلة',
+              when,
+              details,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            );
 
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('تمت جدولة إشعار بعد 10 ثوانٍ',
-                  textAlign: TextAlign.center),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('تمت جدولة إشعار بعد 10 ثوانٍ',
+                    textAlign: TextAlign.center),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    'فشل جدولة الإشعار. اضغط "السماح بالمنبّهات الدقيقة" أدناه وفعّل الإذن من إعدادات النظام',
+                    textAlign: TextAlign.center),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 4),
+              ),
+            );
+          }
         },
         icon: Icon(Icons.schedule),
         label: Text(
