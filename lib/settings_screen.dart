@@ -783,7 +783,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             fontSize: 15, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 4),
                     Text(
-                      '⚠️ هام: يجب الضغط على "السماح بالمنبّهات الدقيقة" أدناه ثم تفعيل الإذن من إعدادات النظام',
+                      '⚠️ الحل: اضغط "إعدادات التطبيق" أدناه، ثم ابحث عن "Set alarms and reminders" أو "Alarms" وفعّله',
                       style: GoogleFonts.cairo(
                           fontSize: 11, 
                           color: Colors.red.shade700,
@@ -808,6 +808,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Icons.alarm_on,
                 label: 'السماح بالمنبّهات الدقيقة',
                 onTap: _openExactAlarmSettings,
+              ),
+              _quickActionButton(
+                icon: Icons.settings_applications,
+                label: 'إعدادات التطبيق',
+                onTap: _openAppSettings,
               ),
               _quickActionButton(
                 icon: Icons.battery_alert,
@@ -857,6 +862,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       arguments: <String, dynamic>{
         'android.provider.extra.APP_PACKAGE': 'com.abdouclk.aladkar',
       },
+    );
+    intent.launch();
+  }
+
+  void _openAppSettings() {
+    if (!Platform.isAndroid) return;
+    final intent = AndroidIntent(
+      action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
+      data: 'package:com.abdouclk.aladkar',
     );
     intent.launch();
   }
