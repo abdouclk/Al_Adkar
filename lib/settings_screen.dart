@@ -575,6 +575,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return;
           }
 
+          // Extra diagnostics: check if exact alarms are allowed
+          final androidImpl =
+              flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin>();
+          final canExact =
+              await androidImpl?.canScheduleExactNotifications() ?? false;
+          if (!canExact) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    'النظام يمنع المنبّهات الدقيقة لهذا التطبيق. افتح إعدادات التطبيق وفعّل "Set alarms & reminders" ثم أعد المحاولة.',
+                    textAlign: TextAlign.center),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 5),
+              ),
+            );
+            _openExactAlarmSettings();
+            return;
+          }
+
           // Schedule a notification 10 seconds from now
           final when = tz.TZDateTime.now(tz.local).add(Duration(seconds: 10));
           const AndroidNotificationDetails androidDetails =
@@ -674,6 +695,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 duration: Duration(seconds: 5),
               ),
             );
+            return;
+          }
+
+          // Extra diagnostics before scheduling
+          final androidImpl =
+              flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin>();
+          final canExact =
+              await androidImpl?.canScheduleExactNotifications() ?? false;
+          if (!canExact) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    'النظام يمنع المنبّهات الدقيقة لهذا التطبيق. افتح إعدادات التطبيق وفعّل "Set alarms & reminders" ثم أعد المحاولة.',
+                    textAlign: TextAlign.center),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 5),
+              ),
+            );
+            _openExactAlarmSettings();
             return;
           }
 
@@ -877,21 +919,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _openExactAlarmSettings() {
     if (!Platform.isAndroid) return;
-    // Try to open the alarms & reminders settings page
-    try {
-      final intent = AndroidIntent(
+    // Try multiple intents to reach the exact alarm permission page on different OEMs
+    final intents = <AndroidIntent>[
+      // Official Android 12+ intent
+      AndroidIntent(action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM'),
+      // Same with package argument
+      AndroidIntent(
         action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
-      );
-      intent.launch();
-    } catch (e) {
-      // Fallback to general alarm settings
+        arguments: <String, dynamic>{
+          'android.provider.extra.APP_PACKAGE': 'com.abdouclk.aladkar',
+        },
+      ),
+      // App details (from here user can navigate to special access)
+      AndroidIntent(
+        action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
+        data: 'package:com.abdouclk.aladkar',
+      ),
+      // Manage apps list
+      AndroidIntent(action: 'android.settings.MANAGE_APPLICATIONS_SETTINGS'),
+      AndroidIntent(action: 'android.settings.MANAGE_ALL_APPLICATIONS_SETTINGS'),
+      // Fallback to general settings
+      AndroidIntent(action: 'android.settings.SETTINGS'),
+    ];
+
+    for (final intent in intents) {
       try {
-        final fallback = AndroidIntent(
-          action: 'android.settings.SETTINGS',
-        );
-        fallback.launch();
-      } catch (e2) {
-        if (kDebugMode) print('Failed to open settings: $e2');
+        intent.launch();
+        break; // stop after first successful launch attempt
+      } catch (_) {
+        // try next
       }
     }
   }
