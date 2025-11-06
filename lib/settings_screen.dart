@@ -1,6 +1,7 @@
 // ignore_for_file: use_super_parameters, prefer_const_constructors, deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'widgets/app_scaffold.dart';
@@ -644,23 +645,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       child: ElevatedButton.icon(
         onPressed: () async {
+          if (kDebugMode) print('DEBUG: Starting 1-minute test...');
+          
           final ok = await ensureNotificationPermissions();
           if (!ok) {
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                    'لم يتم السماح بالإشعارات. فعّلها من إعدادات النظام ثم جرّب مرة أخرى.',
+                    'فشل: لم يتم السماح بالإشعارات أو المنبّهات الدقيقة.\n'
+                    'استخدم أزرار "حل المشاكل" أدناه لفتح إعدادات النظام.',
                     textAlign: TextAlign.center),
                 backgroundColor: Colors.redAccent,
-                duration: Duration(seconds: 3),
+                duration: Duration(seconds: 5),
               ),
             );
             return;
           }
 
+          if (kDebugMode) print('DEBUG: Permissions OK, scheduling notification...');
+
           // Schedule a notification 1 minute from now
           final when = tz.TZDateTime.now(tz.local).add(Duration(minutes: 1));
+          if (kDebugMode) print('DEBUG: Current time: ${tz.TZDateTime.now(tz.local)}');
+          if (kDebugMode) print('DEBUG: Scheduled for: $when');
+          
           const AndroidNotificationDetails androidDetails =
               AndroidNotificationDetails(
             'adhkar_test',
@@ -673,24 +682,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
           );
           const NotificationDetails details =
               NotificationDetails(android: androidDetails);
-          await flutterLocalNotificationsPlugin.zonedSchedule(
-            9011,
-            'اختبار الإشعارات (دقيقة واحدة)',
-            'هذا إشعار تجريبي بعد دقيقة - إذا ظهر فالنظام يعمل بشكل صحيح',
-            when,
-            details,
-            uiLocalNotificationDateInterpretation:
-                UILocalNotificationDateInterpretation.absoluteTime,
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          );
+          
+          try {
+            await flutterLocalNotificationsPlugin.zonedSchedule(
+              9011,
+              'اختبار الإشعارات (دقيقة واحدة)',
+              'هذا إشعار تجريبي بعد دقيقة - إذا ظهر فالنظام يعمل بشكل صحيح',
+              when,
+              details,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            );
+            if (kDebugMode) print('DEBUG: Notification scheduled successfully with ID 9011');
+          } catch (e) {
+            if (kDebugMode) print('DEBUG: Error scheduling notification: $e');
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('فشل جدولة الإشعار: $e',
+                    textAlign: TextAlign.center),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 4),
+              ),
+            );
+            return;
+          }
 
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('تمت جدولة إشعار بعد دقيقة واحدة - انتظر...',
-                  textAlign: TextAlign.center),
+              content: Text(
+                'تمت جدولة إشعار بعد دقيقة واحدة عند ${when.hour}:${when.minute.toString().padLeft(2, '0')}\n'
+                'انتظر دقيقة. إذا لم يظهر، اضغط "السماح بالمنبّهات الدقيقة" أدناه',
+                textAlign: TextAlign.center),
               backgroundColor: Colors.orange,
-              duration: Duration(seconds: 3),
+              duration: Duration(seconds: 5),
             ),
           );
         },
@@ -733,9 +760,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               const Icon(Icons.settings_suggest, color: Color(0xFF0B6623)),
               const SizedBox(width: 8),
-              Text('حل مشاكل الإشعارات ',
-                  style: GoogleFonts.cairo(
-                      fontSize: 15, fontWeight: FontWeight.w800)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('حل مشاكل الإشعارات المجدولة',
+                        style: GoogleFonts.cairo(
+                            fontSize: 15, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Text(
+                      'إذا لم تعمل الإشعارات المجدولة، يجب السماح بالمنبّهات الدقيقة من إعدادات النظام',
+                      style: GoogleFonts.cairo(
+                          fontSize: 11, color: Colors.red.shade700),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),

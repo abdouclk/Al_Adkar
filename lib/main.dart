@@ -231,10 +231,38 @@ Future<bool> ensureNotificationPermissions() async {
   final androidImpl =
       flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
+  
+  // Check notification permission
   final enabled = await androidImpl?.areNotificationsEnabled() ?? true;
-  if (enabled) return true;
-  final granted = await androidImpl?.requestNotificationsPermission() ?? true;
-  return granted;
+  if (!enabled) {
+    final granted = await androidImpl?.requestNotificationsPermission() ?? false;
+    if (!granted) {
+      if (kDebugMode) debugPrint('Notification permission denied');
+      return false;
+    }
+  }
+  
+  // Check exact alarm permission (Android 12+)
+  if (androidImpl != null) {
+    try {
+      final canSchedule = await androidImpl.canScheduleExactNotifications() ?? false;
+      if (!canSchedule) {
+        if (kDebugMode) debugPrint('Exact alarm permission not granted - requesting...');
+        await androidImpl.requestExactAlarmsPermission();
+        // Check again after request
+        final canScheduleAfter = await androidImpl.canScheduleExactNotifications() ?? false;
+        if (!canScheduleAfter) {
+          if (kDebugMode) debugPrint('Exact alarm permission still denied');
+          return false;
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error checking exact alarm permission: $e');
+      // Continue anyway for older Android versions
+    }
+  }
+  
+  return true;
 }
 
 Future<void> scheduleMorning(
