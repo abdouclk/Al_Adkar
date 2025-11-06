@@ -222,6 +222,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SizedBox(height: 12),
             _buildScheduledTestButton(),
             SizedBox(height: 12),
+            _buildOneMinuteTestButton(),
+            SizedBox(height: 12),
             _buildTroubleshootCard(),
             SizedBox(height: 12),
             _buildTimePickerCard(
@@ -626,6 +628,93 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildOneMinuteTestButton() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          final ok = await ensureNotificationPermissions();
+          if (!ok) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    'لم يتم السماح بالإشعارات. فعّلها من إعدادات النظام ثم جرّب مرة أخرى.',
+                    textAlign: TextAlign.center),
+                backgroundColor: Colors.redAccent,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            return;
+          }
+
+          // Schedule a notification 1 minute from now
+          final when = tz.TZDateTime.now(tz.local).add(Duration(minutes: 1));
+          const AndroidNotificationDetails androidDetails =
+              AndroidNotificationDetails(
+            'adhkar_test',
+            'اختبار الإشعارات',
+            channelDescription: 'إشعار مجدول للاختبار بعد دقيقة واحدة',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+          );
+          const NotificationDetails details =
+              NotificationDetails(android: androidDetails);
+          await flutterLocalNotificationsPlugin.zonedSchedule(
+            9011,
+            'اختبار الإشعارات (دقيقة واحدة)',
+            'هذا إشعار تجريبي بعد دقيقة - إذا ظهر فالنظام يعمل بشكل صحيح',
+            when,
+            details,
+            uiLocalNotificationDateInterpretation:
+                UILocalNotificationDateInterpretation.absoluteTime,
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          );
+
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('تمت جدولة إشعار بعد دقيقة واحدة - انتظر...',
+                  textAlign: TextAlign.center),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        },
+        icon: Icon(Icons.timer),
+        label: Text(
+          'تجربة إشعار بعد دقيقة',
+          style: GoogleFonts.cairo(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
+          padding: EdgeInsets.symmetric(vertical: 12),
+          minimumSize: Size(double.infinity, 48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTroubleshootCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -673,6 +762,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Icons.play_circle_fill,
                 label: 'التشغيل التلقائي (Oppo)',
                 onTap: _openOppoAutoStart,
+              ),
+              _quickActionButton(
+                icon: Icons.list_alt,
+                label: 'عرض الإشعارات المجدولة',
+                onTap: _showPendingNotifications,
               ),
             ],
           )
@@ -753,6 +847,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Try intents sequentially
     for (final intent in candidates) {
       intent.launch();
+    }
+  }
+
+  void _showPendingNotifications() async {
+    try {
+      final pending =
+          await flutterLocalNotificationsPlugin.pendingNotificationRequests();
+      if (!mounted) return;
+      
+      if (pending.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('لا توجد إشعارات مجدولة حاليًا',
+                textAlign: TextAlign.center),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('الإشعارات المجدولة',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: pending.map((notification) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    'ID: ${notification.id}\n'
+                    'العنوان: ${notification.title ?? 'بدون عنوان'}\n'
+                    'المحتوى: ${notification.body ?? 'بدون محتوى'}',
+                    style: GoogleFonts.cairo(fontSize: 13),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('إغلاق', style: GoogleFonts.cairo()),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('فشل في عرض الإشعارات المجدولة',
+              textAlign: TextAlign.center),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

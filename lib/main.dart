@@ -65,10 +65,14 @@ Future<void> initNotifications() async {
     onDidReceiveNotificationResponse: (NotificationResponse response) async {
       final payload = response.payload;
       if (payload == 'sabah') {
+        // Reschedule morning notification for tomorrow
+        await _rescheduleNotificationAfterFire('morning');
         navigatorKey.currentState?.push(
           MaterialPageRoute(builder: (_) => sabah_screen.Sabah()),
         );
       } else if (payload == 'massae') {
+        // Reschedule evening notification for tomorrow
+        await _rescheduleNotificationAfterFire('evening');
         navigatorKey.currentState?.push(
           MaterialPageRoute(builder: (_) => massae_screen.Massae()),
         );
@@ -177,6 +181,33 @@ Future<void> _rescheduleAdhkarFromPrefs() async {
   }
 }
 
+// Reschedule notification after it fires (for daily repetition)
+Future<void> _rescheduleNotificationAfterFire(String type) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool('adhkar_notifications_enabled') ?? false;
+    if (!enabled) return;
+
+    final sound = prefs.getString('notification_sound') ?? 'default';
+    
+    if (type == 'morning') {
+      final mh = prefs.getInt('morning_hour') ?? 6;
+      final mm = prefs.getInt('morning_minute') ?? 0;
+      await scheduleMorning(hour: mh, minute: mm, sound: sound);
+      if (kDebugMode) debugPrint('Rescheduled morning notification for tomorrow');
+    } else if (type == 'evening') {
+      final eh = prefs.getInt('evening_hour') ?? 18;
+      final em = prefs.getInt('evening_minute') ?? 0;
+      await scheduleEvening(hour: eh, minute: em, sound: sound);
+      if (kDebugMode) debugPrint('Rescheduled evening notification for tomorrow');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('Failed to reschedule notification after fire: $e');
+    }
+  }
+}
+
 // Use shared instance from NotificationHelper
 
 TZDateTime _nextInstanceOfTZTime(TimeOfDay time) {
@@ -218,13 +249,20 @@ Future<void> scheduleMorning(
     'adhkar_morning',
     'أذكار الصباح',
     channelDescription: 'تذكير يومي بأذكار الصباح',
-    importance: Importance.high,
+    importance: Importance.max,
     priority: Priority.high,
+    playSound: true,
+    enableVibration: true,
     sound:
         sound == 'default' ? null : RawResourceAndroidNotificationSound(sound),
   );
   final NotificationDetails details =
       NotificationDetails(android: androidDetails);
+  
+  // Cancel any existing morning notification first
+  await flutterLocalNotificationsPlugin.cancel(1001);
+  
+  // Schedule WITHOUT matchDateTimeComponents - schedule single instance
   await flutterLocalNotificationsPlugin.zonedSchedule(
     1001,
     'تذكير الأذكار',
@@ -234,10 +272,9 @@ Future<void> scheduleMorning(
     payload: 'sabah',
     uiLocalNotificationDateInterpretation:
         UILocalNotificationDateInterpretation.absoluteTime,
-    matchDateTimeComponents: DateTimeComponents.time,
     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
   );
-  if (kDebugMode) debugPrint('Morning notification scheduled successfully');
+  if (kDebugMode) debugPrint('Morning notification scheduled successfully at $scheduledTime');
 }
 
 Future<void> scheduleEvening(
@@ -252,13 +289,20 @@ Future<void> scheduleEvening(
     'adhkar_evening',
     'أذكار المساء',
     channelDescription: 'تذكير يومي بأذكار المساء',
-    importance: Importance.high,
+    importance: Importance.max,
     priority: Priority.high,
+    playSound: true,
+    enableVibration: true,
     sound:
         sound == 'default' ? null : RawResourceAndroidNotificationSound(sound),
   );
   final NotificationDetails details =
       NotificationDetails(android: androidDetails);
+  
+  // Cancel any existing evening notification first
+  await flutterLocalNotificationsPlugin.cancel(1002);
+  
+  // Schedule WITHOUT matchDateTimeComponents - schedule single instance
   await flutterLocalNotificationsPlugin.zonedSchedule(
     1002,
     'تذكير الأذكار',
@@ -268,10 +312,9 @@ Future<void> scheduleEvening(
     payload: 'massae',
     uiLocalNotificationDateInterpretation:
         UILocalNotificationDateInterpretation.absoluteTime,
-    matchDateTimeComponents: DateTimeComponents.time,
     androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
   );
-  if (kDebugMode) debugPrint('Evening notification scheduled successfully');
+  if (kDebugMode) debugPrint('Evening notification scheduled successfully at $scheduledTime');
 }
 
 Future<void> cancelMorning() async =>
