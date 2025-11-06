@@ -595,7 +595,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             details,
             uiLocalNotificationDateInterpretation:
                 UILocalNotificationDateInterpretation.absoluteTime,
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            androidScheduleMode: AndroidScheduleMode.alarmClock,
           );
 
           if (!mounted) return;
@@ -692,7 +692,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               details,
               uiLocalNotificationDateInterpretation:
                   UILocalNotificationDateInterpretation.absoluteTime,
-              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+              androidScheduleMode: AndroidScheduleMode.alarmClock,
             );
             if (kDebugMode) print('DEBUG: Notification scheduled successfully with ID 9011');
           } catch (e) {

@@ -300,7 +300,7 @@ Future<void> scheduleMorning(
     payload: 'sabah',
     uiLocalNotificationDateInterpretation:
         UILocalNotificationDateInterpretation.absoluteTime,
-    androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    androidScheduleMode: AndroidScheduleMode.alarmClock,
   );
   if (kDebugMode) debugPrint('Morning notification scheduled successfully at $scheduledTime');
 }
@@ -340,7 +340,7 @@ Future<void> scheduleEvening(
     payload: 'massae',
     uiLocalNotificationDateInterpretation:
         UILocalNotificationDateInterpretation.absoluteTime,
-    androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    androidScheduleMode: AndroidScheduleMode.alarmClock,
   );
   if (kDebugMode) debugPrint('Evening notification scheduled successfully at $scheduledTime');
 }
