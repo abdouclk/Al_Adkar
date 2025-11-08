@@ -81,7 +81,7 @@ Future<void> initNotifications() async {
       flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
 
-  // Don't await permission requests - they can block or fail silently
+  // n block or fail silently
   androidImpl?.requestExactAlarmsPermission();
   androidImpl?.requestNotificationsPermission();
 
@@ -200,26 +200,30 @@ Future<bool> ensureNotificationPermissions() async {
   final androidImpl =
       flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
-  
+
   // Check notification permission
   final enabled = await androidImpl?.areNotificationsEnabled() ?? true;
   if (!enabled) {
-    final granted = await androidImpl?.requestNotificationsPermission() ?? false;
+    final granted =
+        await androidImpl?.requestNotificationsPermission() ?? false;
     if (!granted) {
       if (kDebugMode) debugPrint('Notification permission denied');
       return false;
     }
   }
-  
+
   // Check exact alarm permission (Android 12+)
   if (androidImpl != null) {
     try {
-      final canSchedule = await androidImpl.canScheduleExactNotifications() ?? false;
+      final canSchedule =
+          await androidImpl.canScheduleExactNotifications() ?? false;
       if (!canSchedule) {
-        if (kDebugMode) debugPrint('Exact alarm permission not granted - requesting...');
+        if (kDebugMode)
+          debugPrint('Exact alarm permission not granted - requesting...');
         await androidImpl.requestExactAlarmsPermission();
         // Check again after request
-        final canScheduleAfter = await androidImpl.canScheduleExactNotifications() ?? false;
+        final canScheduleAfter =
+            await androidImpl.canScheduleExactNotifications() ?? false;
         if (!canScheduleAfter) {
           if (kDebugMode) debugPrint('Exact alarm permission still denied');
           return false;
@@ -230,7 +234,7 @@ Future<bool> ensureNotificationPermissions() async {
       // Continue anyway for older Android versions
     }
   }
-  
+
   return true;
 }
 
@@ -255,10 +259,10 @@ Future<void> scheduleMorning(
   );
   final NotificationDetails details =
       NotificationDetails(android: androidDetails);
-  
+
   // Cancel any existing morning notification first
   await flutterLocalNotificationsPlugin.cancel(1001);
-  
+
   try {
     // Schedule WITHOUT matchDateTimeComponents - it's unreliable on many devices
     await flutterLocalNotificationsPlugin.zonedSchedule(
@@ -273,7 +277,9 @@ Future<void> scheduleMorning(
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
-    if (kDebugMode) debugPrint('Morning notification scheduled successfully at $scheduledTime');
+    if (kDebugMode)
+      debugPrint(
+          'Morning notification scheduled successfully at $scheduledTime');
   } catch (e) {
     if (kDebugMode) debugPrint('Failed to schedule morning notification: $e');
   }
@@ -300,10 +306,10 @@ Future<void> scheduleEvening(
   );
   final NotificationDetails details =
       NotificationDetails(android: androidDetails);
-  
+
   // Cancel any existing evening notification first
   await flutterLocalNotificationsPlugin.cancel(1002);
-  
+
   try {
     // Schedule WITHOUT matchDateTimeComponents - it's unreliable on many devices
     await flutterLocalNotificationsPlugin.zonedSchedule(
@@ -318,7 +324,9 @@ Future<void> scheduleEvening(
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
-    if (kDebugMode) debugPrint('Evening notification scheduled successfully at $scheduledTime');
+    if (kDebugMode)
+      debugPrint(
+          'Evening notification scheduled successfully at $scheduledTime');
   } catch (e) {
     if (kDebugMode) debugPrint('Failed to schedule evening notification: $e');
   }

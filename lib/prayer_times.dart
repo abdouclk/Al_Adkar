@@ -145,7 +145,8 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _scheduleNextPrayerNotification,
                   icon: const Icon(Icons.notifications_active),
-                  label: Text('إشعار الصلاة القادمة', style: GoogleFonts.cairo()),
+                  label:
+                      Text('إشعار الصلاة القادمة', style: GoogleFonts.cairo()),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -161,7 +162,8 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
@@ -190,7 +192,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('الرجاء تفعيل إذن الإشعارات من الإعدادات', 
+            content: Text('الرجاء تفعيل إذن الإشعارات من الإعدادات',
                 style: GoogleFonts.cairo()),
             backgroundColor: Colors.redAccent),
       );
@@ -198,7 +200,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     }
 
     await NotificationHelper.createPrayerChannelIfNeeded();
-    
+
     // Request exact alarm permission (Android 12+) for precise scheduling
     try {
       await NotificationHelper.requestExactAlarmsPermission();
@@ -213,7 +215,8 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     final now = DateTime.now();
     final scheduledTime = nextTime.isAfter(now.add(const Duration(seconds: 5)))
         ? nextTime
-        : now.add(const Duration(seconds: 10)); // Test notification after 10 seconds
+        : now.add(
+            const Duration(seconds: 10)); // Test notification after 10 seconds
 
     await NotificationHelper.scheduleAt(
       id: 3001,
@@ -227,7 +230,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content: Text('تم جدولة إشعار $nextName في $timeDisplay', 
+          content: Text('تم جدولة إشعار $nextName في $timeDisplay',
               style: GoogleFonts.cairo()),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 3)),
@@ -240,7 +243,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('الرجاء تفعيل إذن الإشعارات من الإعدادات', 
+            content: Text('الرجاء تفعيل إذن الإشعارات من الإعدادات',
                 style: GoogleFonts.cairo()),
             backgroundColor: Colors.redAccent),
       );
@@ -251,7 +254,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
 
     // Schedule a test notification 5 seconds from now
     final testTime = DateTime.now().add(const Duration(seconds: 5));
-    
+
     await NotificationHelper.scheduleAt(
       id: 3002,
       time: testTime,
@@ -263,7 +266,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content: Text('تم جدولة إشعار تجريبي خلال 5 ثوانٍ', 
+          content: Text('تم جدولة إشعار تجريبي خلال 5 ثوانٍ',
               style: GoogleFonts.cairo()),
           backgroundColor: Colors.orange,
           duration: const Duration(seconds: 2)),

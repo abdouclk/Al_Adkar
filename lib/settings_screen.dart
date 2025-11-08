@@ -576,8 +576,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           }
 
           // Extra diagnostics: check if exact alarms are allowed
-          final androidImpl =
-              flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+          final androidImpl = flutterLocalNotificationsPlugin
+              .resolvePlatformSpecificImplementation<
                   AndroidFlutterLocalNotificationsPlugin>();
           final canExact =
               await androidImpl?.canScheduleExactNotifications() ?? false;
@@ -608,7 +608,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           );
           const NotificationDetails details =
               NotificationDetails(android: androidDetails);
-          
+
           try {
             await flutterLocalNotificationsPlugin.zonedSchedule(
               9010,
@@ -681,7 +681,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: ElevatedButton.icon(
         onPressed: () async {
           if (kDebugMode) print('DEBUG: Starting 1-minute test...');
-          
+
           final ok = await ensureNotificationPermissions();
           if (!ok) {
             if (!mounted) return;
@@ -699,8 +699,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           }
 
           // Extra diagnostics before scheduling
-          final androidImpl =
-              flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+          final androidImpl = flutterLocalNotificationsPlugin
+              .resolvePlatformSpecificImplementation<
                   AndroidFlutterLocalNotificationsPlugin>();
           final canExact =
               await androidImpl?.canScheduleExactNotifications() ?? false;
@@ -719,13 +719,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return;
           }
 
-          if (kDebugMode) print('DEBUG: Permissions OK, scheduling notification...');
+          if (kDebugMode) {
+            print('DEBUG: Permissions OK, scheduling notification...');
+          }
 
           // Schedule a notification 1 minute from now
           final when = tz.TZDateTime.now(tz.local).add(Duration(minutes: 1));
-          if (kDebugMode) print('DEBUG: Current time: ${tz.TZDateTime.now(tz.local)}');
+          if (kDebugMode) {
+            print('DEBUG: Current time: ${tz.TZDateTime.now(tz.local)}');
+          }
           if (kDebugMode) print('DEBUG: Scheduled for: $when');
-          
+
           const AndroidNotificationDetails androidDetails =
               AndroidNotificationDetails(
             'adhkar_test',
@@ -738,7 +742,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           );
           const NotificationDetails details =
               NotificationDetails(android: androidDetails);
-          
+
           try {
             await flutterLocalNotificationsPlugin.zonedSchedule(
               9011,
@@ -750,14 +754,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   UILocalNotificationDateInterpretation.absoluteTime,
               androidScheduleMode: AndroidScheduleMode.exact,
             );
-            if (kDebugMode) print('DEBUG: Notification scheduled successfully with ID 9011');
+            if (kDebugMode) {
+              print('DEBUG: Notification scheduled successfully with ID 9011');
+            }
           } catch (e) {
             if (kDebugMode) print('DEBUG: Error scheduling notification: $e');
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('فشل جدولة الإشعار: $e',
-                    textAlign: TextAlign.center),
+                content:
+                    Text('فشل جدولة الإشعار: $e', textAlign: TextAlign.center),
                 backgroundColor: Colors.red,
                 duration: Duration(seconds: 4),
               ),
@@ -769,9 +775,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'تمت جدولة إشعار بعد دقيقة واحدة عند ${when.hour}:${when.minute.toString().padLeft(2, '0')}\n'
-                'انتظر دقيقة. إذا لم يظهر، اضغط "السماح بالمنبّهات الدقيقة" أدناه',
-                textAlign: TextAlign.center),
+                  'تمت جدولة إشعار بعد دقيقة واحدة عند ${when.hour}:${when.minute.toString().padLeft(2, '0')}\n'
+                  'انتظر دقيقة. إذا لم يظهر، اضغط "السماح بالمنبّهات الدقيقة" أدناه',
+                  textAlign: TextAlign.center),
               backgroundColor: Colors.orange,
               duration: Duration(seconds: 5),
             ),
@@ -827,7 +833,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       '⚠️ الحل: اضغط "إعدادات التطبيق" أدناه، ثم ابحث عن "Set alarms and reminders" أو "Alarms" وفعّله',
                       style: GoogleFonts.cairo(
-                          fontSize: 11, 
+                          fontSize: 11,
                           color: Colors.red.shade700,
                           fontWeight: FontWeight.bold),
                     ),
@@ -937,7 +943,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       // Manage apps list
       AndroidIntent(action: 'android.settings.MANAGE_APPLICATIONS_SETTINGS'),
-      AndroidIntent(action: 'android.settings.MANAGE_ALL_APPLICATIONS_SETTINGS'),
+      AndroidIntent(
+          action: 'android.settings.MANAGE_ALL_APPLICATIONS_SETTINGS'),
       // Fallback to general settings
       AndroidIntent(action: 'android.settings.SETTINGS'),
     ];
@@ -993,7 +1000,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final pending =
           await flutterLocalNotificationsPlugin.pendingNotificationRequests();
       if (!mounted) return;
-      
+
       if (pending.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

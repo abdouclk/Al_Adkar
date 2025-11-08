@@ -39,7 +39,8 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           setState(() {
-            _locationInfo = 'يرجى السماح بالوصول للموقع لحساب اتجاه القبلة بدقة';
+            _locationInfo =
+                'يرجى السماح بالوصول للموقع لحساب اتجاه القبلة بدقة';
           });
           return;
         }
@@ -61,15 +62,12 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
       setState(() {
         _currentPosition = position;
         _locationInfo = 'خط العرض: ${position.latitude.toStringAsFixed(4)}\n'
-                       'خط الطول: ${position.longitude.toStringAsFixed(4)}';
+            'خط الطول: ${position.longitude.toStringAsFixed(4)}';
       });
 
       // Calculate manual qibla as backup/verification
-      _manualQiblahAngle = _calculateQiblaDirection(
-        position.latitude, 
-        position.longitude
-      );
-
+      _manualQiblahAngle =
+          _calculateQiblaDirection(position.latitude, position.longitude);
     } catch (e) {
       setState(() {
         _locationInfo = 'خطأ في تحديد الموقع: ${e.toString()}';
@@ -82,27 +80,27 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
     // Kaaba coordinates (Mecca)
     const double kaabaLat = 21.4225;
     const double kaabaLng = 39.8262;
-    
+
     // Convert to radians
     final double lat1 = lat * math.pi / 180;
     final double lng1 = lng * math.pi / 180;
     final double lat2 = kaabaLat * math.pi / 180;
     final double lng2 = kaabaLng * math.pi / 180;
-    
+
     final double deltaLng = lng2 - lng1;
-    
+
     // Calculate qibla direction using spherical trigonometry
     final double y = math.sin(deltaLng) * math.cos(lat2);
-    final double x = math.cos(lat1) * math.sin(lat2) - 
-                     math.sin(lat1) * math.cos(lat2) * math.cos(deltaLng);
-    
+    final double x = math.cos(lat1) * math.sin(lat2) -
+        math.sin(lat1) * math.cos(lat2) * math.cos(deltaLng);
+
     double qibla = math.atan2(y, x) * 180 / math.pi;
-    
+
     // Normalize to 0-360 degrees
     if (qibla < 0) {
       qibla += 360;
     }
-    
+
     return qibla;
   }
 
@@ -110,25 +108,27 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
   double _calculateDistanceToMecca(Position position) {
     const double kaabaLat = 21.4225;
     const double kaabaLng = 39.8262;
-    
+
     return Geolocator.distanceBetween(
-      position.latitude,
-      position.longitude,
-      kaabaLat,
-      kaabaLng,
-    ) / 1000; // Convert to kilometers
+          position.latitude,
+          position.longitude,
+          kaabaLat,
+          kaabaLng,
+        ) /
+        1000; // Convert to kilometers
   }
 
   void _calibrateCompass() {
     setState(() {
       _isCalibrating = true;
     });
-    
+
     // Show calibration dialog
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('معايرة البوصلة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        title: Text('معايرة البوصلة',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -154,12 +154,13 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                 _isCalibrating = false;
               });
             },
-            child: Text('تم', style: GoogleFonts.cairo(color: Color(0xFF0B6623))),
+            child:
+                Text('تم', style: GoogleFonts.cairo(color: Color(0xFF0B6623))),
           ),
         ],
       ),
     );
-    
+
     // Auto-close after 10 seconds
     Future.delayed(Duration(seconds: 10), () {
       if (mounted && _isCalibrating) {
@@ -296,12 +297,14 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                           StreamBuilder<QiblahDirection>(
                             stream: FlutterQiblah.qiblahStream,
                             builder: (context, snapshot) {
-                              if (snapshot.hasError && _manualQiblahAngle == null) {
+                              if (snapshot.hasError &&
+                                  _manualQiblahAngle == null) {
                                 return Center(
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.error, color: Colors.red, size: 48),
+                                      Icon(Icons.error,
+                                          color: Colors.red, size: 48),
                                       SizedBox(height: 8),
                                       Text(
                                         'تحقق من تفعيل الموقع وحساس البوصلة',
@@ -313,17 +316,19 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                                       ),
                                       SizedBox(height: 8),
                                       ElevatedButton(
-                                        onPressed: _getLocationAndCalculateQibla,
-                                        child: Text('إعادة المحاولة', style: GoogleFonts.cairo()),
+                                        onPressed:
+                                            _getLocationAndCalculateQibla,
+                                        child: Text('إعادة المحاولة',
+                                            style: GoogleFonts.cairo()),
                                       ),
                                     ],
                                   ),
                                 );
                               }
-                              
+
                               double qiblahAngle;
                               bool useManualCalculation = false;
-                              
+
                               if (snapshot.hasData) {
                                 qiblahAngle = snapshot.data!.qiblah;
                               } else if (_manualQiblahAngle != null) {
@@ -355,8 +360,8 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                                   height: 220,
                                   child: CustomPaint(
                                     painter: NeedlePainter(
-                                      isManualCalculation: useManualCalculation
-                                    ),
+                                        isManualCalculation:
+                                            useManualCalculation),
                                   ),
                                 ),
                               );
@@ -426,16 +431,19 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                                 String displayText = '';
                                 if (snapshot.hasData) {
                                   final q = snapshot.data!;
-                                  displayText = 'بوصلة: ${q.qiblah.toStringAsFixed(0)}°';
+                                  displayText =
+                                      'بوصلة: ${q.qiblah.toStringAsFixed(0)}°';
                                   if (_manualQiblahAngle != null) {
-                                    displayText += '\nحسابي: ${_manualQiblahAngle!.toStringAsFixed(0)}°';
+                                    displayText +=
+                                        '\nحسابي: ${_manualQiblahAngle!.toStringAsFixed(0)}°';
                                   }
                                 } else if (_manualQiblahAngle != null) {
-                                  displayText = 'القبلة: ${_manualQiblahAngle!.toStringAsFixed(0)}°';
+                                  displayText =
+                                      'القبلة: ${_manualQiblahAngle!.toStringAsFixed(0)}°';
                                 } else {
                                   return SizedBox.shrink();
                                 }
-                                
+
                                 return Container(
                                   padding: EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 8),
@@ -497,7 +505,8 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF0B6623),
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -516,7 +525,8 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF1A8B3D),
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -528,20 +538,20 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                 _buildInfoCard(
                   icon: Icons.location_on,
                   title: 'الموقع الحالي',
-                  value: _currentPosition != null 
-                    ? '${_currentPosition!.latitude.toStringAsFixed(4)}, ${_currentPosition!.longitude.toStringAsFixed(4)}'
-                    : 'جاري التحديد...',
+                  value: _currentPosition != null
+                      ? '${_currentPosition!.latitude.toStringAsFixed(4)}, ${_currentPosition!.longitude.toStringAsFixed(4)}'
+                      : 'جاري التحديد...',
                   subtitle: _currentPosition != null
-                    ? 'دقة: ±${_currentPosition!.accuracy.toStringAsFixed(0)} متر'
-                    : _locationInfo,
+                      ? 'دقة: ±${_currentPosition!.accuracy.toStringAsFixed(0)} متر'
+                      : _locationInfo,
                 ),
                 SizedBox(height: 15),
                 _buildInfoCard(
                   icon: Icons.straighten,
                   title: 'المسافة إلى مكة',
-                  value: _currentPosition != null 
-                    ? '${_calculateDistanceToMecca(_currentPosition!).toStringAsFixed(0)} كم'
-                    : 'غير محدد',
+                  value: _currentPosition != null
+                      ? '${_calculateDistanceToMecca(_currentPosition!).toStringAsFixed(0)} كم'
+                      : 'غير محدد',
                   subtitle: 'المسافة المباشرة عبر الكرة الأرضية',
                 ),
                 SizedBox(height: 15),
@@ -839,9 +849,9 @@ class NeedlePainter extends CustomPainter {
 
     final needlePaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = isManualCalculation 
-        ? const Color(0xFFFF9800) // orange for manual calculation
-        : const Color(0xFFD32F2F); // red for compass
+      ..color = isManualCalculation
+          ? const Color(0xFFFF9800) // orange for manual calculation
+          : const Color(0xFFD32F2F); // red for compass
 
     canvas.drawPath(needlePath, needlePaint);
 

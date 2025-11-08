@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -74,8 +76,9 @@ class NotificationHelper {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     } catch (e) {
-      // Silently fail if exact alarm permission not granted
-      print('Failed to schedule notification: $e');
+      // Instead of silently failing, throw an error with a user-friendly message
+      throw Exception(
+          'فشل جدولة الإشعار: اضغط "السماح بالمنبهات الدقيقة" أدناه وفعل الإذن من إعدادات النظام');
     }
   }
 }
