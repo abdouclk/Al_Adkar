@@ -41,16 +41,49 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 Future<void> initNotifications() async {
   // Timezone init
   tz.initializeTimeZones();
-  // Set tz local using device UTC offset (robust fallback); final fallback to UTC
+  
+  // Set timezone to local - try multiple methods for robustness
   try {
     final now = DateTime.now();
     final offset = now.timeZoneOffset;
     final hours = offset.inHours;
-    // Map offset to Etc/GMT format (note reversed sign convention)
+    
+    // Try to get actual timezone name first
+    try {
+      final locationNames = tz.timeZoneDatabase.locations.keys.toList();
+      // Common timezone patterns
+      final possibleNames = [
+        'Africa/Casablanca',  // Morocco
+        'Africa/Algiers',     // Algeria  
+        'Africa/Tunis',       // Tunisia
+        'Africa/Cairo',       // Egypt
+        'Asia/Riyadh',        // Saudi Arabia
+        'Asia/Dubai',         // UAE
+      ];
+      
+      // Try to find a matching timezone
+      for (final name in possibleNames) {
+        if (locationNames.contains(name)) {
+          final location = tz.getLocation(name);
+          final testTime = tz.TZDateTime.from(now, location);
+          if (testTime.timeZoneOffset == offset) {
+            tz.setLocalLocation(location);
+            if (kDebugMode) debugPrint('Using timezone: $name');
+            return;
+          }
+        }
+      }
+    } catch (_) {
+      // Fall through to offset-based timezone
+    }
+    
+    // Fallback: Map offset to Etc/GMT format (note reversed sign convention)
     final String etc =
         'Etc/GMT${hours == 0 ? '' : (hours > 0 ? '-$hours' : '+${hours.abs()}')}';
     tz.setLocalLocation(tz.getLocation(etc));
-  } catch (_) {
+    if (kDebugMode) debugPrint('Using timezone: $etc (offset: ${offset.inHours}h)');
+  } catch (e) {
+    if (kDebugMode) debugPrint('Timezone setup failed, using UTC: $e');
     tz.setLocalLocation(tz.UTC);
   }
 
@@ -63,15 +96,30 @@ Future<void> initNotifications() async {
   await flutterLocalNotificationsPlugin.initialize(
     settings,
     onDidReceiveNotificationResponse: (NotificationResponse response) async {
-      final payload = response.payload;
-      if (payload == 'sabah') {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (_) => sabah_screen.Sabah()),
-        );
-      } else if (payload == 'massae') {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (_) => massae_screen.Massae()),
-        );
+      try {
+        final payload = response.payload;
+        if (kDebugMode) {
+          debugPrint('Notification tapped with payload: $payload');
+        }
+        
+        // Only navigate if we have a valid navigator and specific payload
+        if (navigatorKey.currentState != null && navigatorKey.currentState!.mounted) {
+          if (payload == 'sabah') {
+            navigatorKey.currentState?.push(
+              MaterialPageRoute(builder: (_) => sabah_screen.Sabah()),
+            );
+          } else if (payload == 'massae') {
+            navigatorKey.currentState?.push(
+              MaterialPageRoute(builder: (_) => massae_screen.Massae()),
+            );
+          }
+          // Ignore test payloads and other payloads - don't navigate
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('Error handling notification response: $e');
+        }
+        // Don't crash - just log the error
       }
     },
   );
@@ -87,22 +135,30 @@ Future<void> initNotifications() async {
 
   // Proactively create channels with desired importance so Android uses them
   try {
+    // Main channel for 4 daily adhkar notifications
     await androidImpl?.createNotificationChannel(
       const AndroidNotificationChannel(
-        'adhkar_morning',
-        'أذكار الصباح',
-        description: 'تذكير يومي بأذكار الصباح',
+        'adhkar_daily',
+        'الأذكار اليومية',
+        description: 'تذكير يومي بالأذكار كل 6 ساعات (00:00, 06:00, 12:00, 18:00)',
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+        enableLights: true,
+      ),
+    );
+    
+    // Keep prayer times channel
+    await androidImpl?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'prayer_times',
+        'أوقات الصلاة',
+        description: 'تنبيه بموعد الصلاة القادمة',
         importance: Importance.high,
       ),
     );
-    await androidImpl?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        'adhkar_evening',
-        'أذكار المساء',
-        description: 'تذكير يومي بأذكار المساء',
-        importance: Importance.high,
-      ),
-    );
+    
+    // Test channel for debugging
     await androidImpl?.createNotificationChannel(
       const AndroidNotificationChannel(
         'adhkar_test',
@@ -111,12 +167,18 @@ Future<void> initNotifications() async {
         importance: Importance.high,
       ),
     );
+    
+    // 2-hour reminders channel (every 2 hours from 6am to 10pm)
     await androidImpl?.createNotificationChannel(
       const AndroidNotificationChannel(
-        'prayer_times',
-        'أوقات الصلاة',
-        description: 'تنبيه بموعد الصلاة القادمة',
-        importance: Importance.high,
+        'adhkar_2hour',
+        'تذكير كل ساعتين',
+        description: 'تذكير بالأذكار كل ساعتين من 06:00 صباحًا إلى 10:00 مساءً',
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+        enableLights: true,
+        showBadge: true,
       ),
     );
   } catch (e) {
@@ -130,6 +192,36 @@ Future<void> initNotifications() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Custom error handler to suppress TextStyle interpolation errors during theme changes
+  FlutterError.onError = (FlutterErrorDetails details) {
+    // Check if error is the TextStyle inherit mismatch during theme transition
+    final exception = details.exception.toString();
+    if (exception.contains('Failed to interpolate TextStyles') || 
+        exception.contains('inherit') ||
+        exception.contains('TextStyle')) {
+      // Silently ignore theme transition errors
+      if (kDebugMode) {
+        debugPrint('Theme transition error suppressed: $exception');
+      }
+      return;
+    }
+    // For all other errors, show the default red error screen
+    FlutterError.presentError(details);
+  };
+
+  // Also catch errors during build phase
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    final exception = details.exception.toString();
+    if (exception.contains('Failed to interpolate TextStyles') || 
+        exception.contains('inherit') ||
+        exception.contains('TextStyle')) {
+      // Return empty container instead of red error screen
+      return Container();
+    }
+    // Show default error widget for other errors
+    return ErrorWidget(details.exception);
+  };
+
   // Initialize in background; never block app launch
   _initializeAppServices();
 
@@ -140,7 +232,11 @@ Future<void> _initializeAppServices() async {
   try {
     await initNotifications();
     NotificationHelper.attach(flutterLocalNotificationsPlugin);
-    await _rescheduleAdhkarFromPrefs();
+    // Auto-schedule 4 daily notifications - no user toggle needed
+    await _scheduleAllDailyNotifications();
+    
+    // Restore 2-hour notifications if they were previously enabled
+    await _restore2HourNotifications();
   } catch (e) {
     // Log error but don't crash
     if (kDebugMode) {
@@ -149,31 +245,147 @@ Future<void> _initializeAppServices() async {
   }
 }
 
-Future<void> _rescheduleAdhkarFromPrefs() async {
+// Restore 2-hour notifications from saved preferences
+Future<void> _restore2HourNotifications() async {
   try {
     final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool('adhkar_notifications_enabled') ?? false;
-    if (!enabled) {
-      // Ensure any previous schedules are cleared
-      await cancelMorning();
-      await cancelEvening();
-      return;
+    final enabled = prefs.getBool('adhkar_2hour_enabled') ?? false;
+    
+    if (enabled) {
+      if (kDebugMode) {
+        debugPrint('Restoring 2-hour notifications (previously enabled)...');
+      }
+      
+      // Check permissions silently
+      final granted = await ensureNotificationPermissions();
+      if (granted) {
+        await schedule2HourNotifications();
+        if (kDebugMode) {
+          debugPrint('✅ 2-hour notifications restored successfully');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('❌ Cannot restore 2-hour notifications - permissions not granted');
+        }
+      }
     }
-    // Ensure permission is granted (Android 13+)
-    final ok = await ensureNotificationPermissions();
-    if (!ok) return;
-
-    final mh = prefs.getInt('morning_hour') ?? 6;
-    final mm = prefs.getInt('morning_minute') ?? 0;
-    final eh = prefs.getInt('evening_hour') ?? 18;
-    final em = prefs.getInt('evening_minute') ?? 0;
-    final sound = prefs.getString('notification_sound') ?? 'default';
-    await scheduleMorning(hour: mh, minute: mm, sound: sound);
-    await scheduleEvening(hour: eh, minute: em, sound: sound);
   } catch (e) {
     if (kDebugMode) {
-      debugPrint('Failed to reschedule adhkar: $e');
+      debugPrint('Error restoring 2-hour notifications: $e');
     }
+  }
+}
+
+// Schedule 4 daily notifications at 00:00, 06:00, 12:00, 18:00
+Future<void> _scheduleAllDailyNotifications() async {
+  try {
+    // Request permissions silently - don't block on failure
+    final androidImpl =
+        flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    
+    try {
+      await androidImpl?.requestNotificationsPermission();
+      await androidImpl?.requestExactAlarmsPermission();
+    } catch (e) {
+      if (kDebugMode) debugPrint('Permission request failed (will continue): $e');
+    }
+
+    // Schedule 4 times: midnight, morning, noon, evening
+    await _scheduleSingleNotification(
+      id: 1001,
+      hour: 0,
+      minute: 0,
+      title: 'أذكار منتصف الليل',
+      body: 'حان وقت الأذكار - اضغط للقراءة',
+      payload: 'sabah', // Navigate to sabah screen
+    );
+
+    await _scheduleSingleNotification(
+      id: 1002,
+      hour: 6,
+      minute: 0,
+      title: 'أذكار الصباح',
+      body: 'حان وقت أذكار الصباح - اضغط للقراءة',
+      payload: 'sabah',
+    );
+
+    await _scheduleSingleNotification(
+      id: 1003,
+      hour: 12,
+      minute: 0,
+      title: 'أذكار الظهيرة',
+      body: 'حان وقت الأذكار - اضغط للقراءة',
+      payload: 'sabah',
+    );
+
+    await _scheduleSingleNotification(
+      id: 1004,
+      hour: 18,
+      minute: 0,
+      title: 'أذكار المساء',
+      body: 'حان وقت أذكار المساء - اضغط للقراءة',
+      payload: 'massae',
+    );
+
+    if (kDebugMode) {
+      debugPrint('✅ All 4 daily notifications scheduled (00:00, 06:00, 12:00, 18:00)');
+      debugPendingNotifications();
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('Failed to schedule daily notifications: $e');
+    }
+    // Don't crash - app still works without notifications
+  }
+}
+
+Future<void> _scheduleSingleNotification({
+  required int id,
+  required int hour,
+  required int minute,
+  required String title,
+  required String body,
+  String? payload,
+}) async {
+  final scheduledTime = _nextInstanceOfTZTime(TimeOfDay(hour: hour, minute: minute));
+  
+  final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'adhkar_daily',
+    'الأذكار اليومية',
+    channelDescription: 'تذكير يومي بالأذكار كل 6 ساعات',
+    importance: Importance.max,
+    priority: Priority.high,
+    playSound: true,
+    enableVibration: true,
+    enableLights: true,
+    fullScreenIntent: true,
+  );
+  
+  final NotificationDetails details = NotificationDetails(android: androidDetails);
+
+  // Cancel existing notification with same ID
+  await flutterLocalNotificationsPlugin.cancel(id);
+
+  try {
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledTime,
+      details,
+      payload: payload,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time, // Repeat daily
+    );
+    if (kDebugMode) {
+      debugPrint('Scheduled notification $id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
+    }
+  } catch (e) {
+    if (kDebugMode) debugPrint('Failed to schedule notification $id: $e');
+    // Don't rethrow - try to schedule others
   }
 }
 
@@ -254,6 +466,8 @@ Future<void> scheduleMorning(
     priority: Priority.high,
     playSound: true,
     enableVibration: true,
+    enableLights: true,
+    fullScreenIntent: true,
     sound:
         sound == 'default' ? null : RawResourceAndroidNotificationSound(sound),
   );
@@ -264,7 +478,7 @@ Future<void> scheduleMorning(
   await flutterLocalNotificationsPlugin.cancel(1001);
 
   try {
-    // Schedule WITHOUT matchDateTimeComponents - it's unreliable on many devices
+    // Schedule with matchDateTimeComponents.time for daily repeat at the same time
     await flutterLocalNotificationsPlugin.zonedSchedule(
       1001,
       'تذكير الأذكار',
@@ -277,11 +491,13 @@ Future<void> scheduleMorning(
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
-    if (kDebugMode)
-      debugPrint(
-          'Morning notification scheduled successfully at $scheduledTime');
+    if (kDebugMode) {
+      debugPrint('Morning notification scheduled successfully at $scheduledTime');
+      debugPendingNotifications();
+    }
   } catch (e) {
     if (kDebugMode) debugPrint('Failed to schedule morning notification: $e');
+    rethrow; // Rethrow to allow caller to handle error
   }
 }
 
@@ -301,6 +517,8 @@ Future<void> scheduleEvening(
     priority: Priority.high,
     playSound: true,
     enableVibration: true,
+    enableLights: true,
+    fullScreenIntent: true,
     sound:
         sound == 'default' ? null : RawResourceAndroidNotificationSound(sound),
   );
@@ -311,7 +529,7 @@ Future<void> scheduleEvening(
   await flutterLocalNotificationsPlugin.cancel(1002);
 
   try {
-    // Schedule WITHOUT matchDateTimeComponents - it's unreliable on many devices
+    // Schedule with matchDateTimeComponents.time for daily repeat at the same time
     await flutterLocalNotificationsPlugin.zonedSchedule(
       1002,
       'تذكير الأذكار',
@@ -324,11 +542,13 @@ Future<void> scheduleEvening(
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
-    if (kDebugMode)
-      debugPrint(
-          'Evening notification scheduled successfully at $scheduledTime');
+    if (kDebugMode) {
+      debugPrint('Evening notification scheduled successfully at $scheduledTime');
+      debugPendingNotifications();
+    }
   } catch (e) {
     if (kDebugMode) debugPrint('Failed to schedule evening notification: $e');
+    rethrow; // Rethrow to allow caller to handle error
   }
 }
 
@@ -340,18 +560,26 @@ Future<void> cancelEvening() async =>
 // Test notification - fires immediately
 Future<bool> sendTestNotification() async {
   if (kDebugMode) debugPrint('Sending test notification...');
+  
   final androidImpl =
       flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
-  // Check and request permission if needed
-  final enabled = await androidImpl?.areNotificationsEnabled() ?? true;
-  bool granted = enabled;
-  if (!enabled) {
-    granted = await androidImpl?.requestNotificationsPermission() ?? false;
-  }
-  if (!granted) {
-    if (kDebugMode) debugPrint('Notification permission not granted.');
-    return false;
+
+  // For immediate notifications, only check basic notification permission
+  // (don't need exact alarm permission)
+  try {
+    final enabled = await androidImpl?.areNotificationsEnabled() ?? true;
+    if (!enabled) {
+      if (kDebugMode) debugPrint('Notifications not enabled, requesting...');
+      final granted = await androidImpl?.requestNotificationsPermission() ?? false;
+      if (!granted) {
+        if (kDebugMode) debugPrint('Notification permission denied by user');
+        return false;
+      }
+    }
+  } catch (e) {
+    if (kDebugMode) debugPrint('Error checking notification permission: $e');
+    // Continue anyway - might work on older Android versions
   }
 
   // Ensure test channel exists
@@ -361,29 +589,219 @@ Future<bool> sendTestNotification() async {
         'adhkar_test',
         'اختبار الإشعارات',
         description: 'قناة لاختبار ظهور الإشعارات فورًا',
-        importance: Importance.high,
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+        showBadge: true,
       ),
     );
-  } catch (_) {}
+    if (kDebugMode) debugPrint('Test channel created/updated');
+  } catch (e) {
+    if (kDebugMode) debugPrint('Error creating test channel: $e');
+  }
 
   const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
     'adhkar_test',
     'اختبار الإشعارات',
     channelDescription: 'إشعار تجريبي للتأكد من عمل الإشعارات',
-    importance: Importance.high,
+    importance: Importance.max,
     priority: Priority.high,
+    playSound: true,
+    enableVibration: true,
+    enableLights: true,
+    showWhen: true,
+    icon: '@mipmap/ic_launcher',
   );
   const NotificationDetails details =
       NotificationDetails(android: androidDetails);
-  await flutterLocalNotificationsPlugin.show(
-    9999,
+  
+  try {
+    await flutterLocalNotificationsPlugin.show(
+      9999,
+      'اختبار الإشعارات ✓',
+      'إذا ظهر هذا الإشعار، فإن الإشعارات تعمل بشكل صحيح!',
+      details,
+      payload: 'test',
+    );
+    if (kDebugMode) debugPrint('✅ Test notification sent successfully');
+    return true;
+  } catch (e) {
+    if (kDebugMode) debugPrint('❌ Error sending test notification: $e');
+    return false;
+  }
+}
+
+// Helper function to check pending notifications for debugging
+Future<void> debugPendingNotifications() async {
+  if (kDebugMode) {
+    final pending = await flutterLocalNotificationsPlugin.pendingNotificationRequests();
+    debugPrint('=== PENDING NOTIFICATIONS DEBUG ===');
+    debugPrint('Total pending: ${pending.length}');
+    for (final notif in pending) {
+      debugPrint('ID: ${notif.id}, Title: ${notif.title}, Body: ${notif.body}');
+    }
+    debugPrint('===================================');
+  }
+}
+
+// Test scheduled notification - fires after 10 seconds
+Future<bool> sendScheduledTestNotification() async {
+  if (kDebugMode) debugPrint('Scheduling test notification for 10 seconds from now...');
+  
+  final granted = await ensureNotificationPermissions();
+  if (!granted) {
+    if (kDebugMode) debugPrint('Permissions not granted');
+    return false;
+  }
+
+  final testTime = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
+  if (kDebugMode) {
+    debugPrint('Current time: ${tz.TZDateTime.now(tz.local)}');
+    debugPrint('Scheduled time: $testTime');
+  }
+
+  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'adhkar_test',
     'اختبار الإشعارات',
-    'إذا ظهر هذا الإشعار، فإن الإشعارات تعمل بشكل صحيح!',
-    details,
-    payload: 'test',
+    channelDescription: 'إشعار تجريبي مجدول',
+    importance: Importance.max,
+    priority: Priority.high,
+    enableLights: true,
+    fullScreenIntent: true,
   );
-  if (kDebugMode) debugPrint('Test notification sent');
-  return true;
+  const NotificationDetails details = NotificationDetails(android: androidDetails);
+
+  try {
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      9998,
+      'اختبار الإشعار المجدول',
+      'إذا ظهر هذا الإشعار، فإن الإشعارات المجدولة تعمل!',
+      testTime,
+      details,
+      payload: 'test_scheduled',
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
+    if (kDebugMode) debugPrint('Scheduled test notification successfully');
+    await debugPendingNotifications();
+    return true;
+  } catch (e) {
+    if (kDebugMode) debugPrint('Failed to schedule test notification: $e');
+    return false;
+  }
+}
+
+// Schedule 2-hour repeating notifications (6am to 10pm)
+Future<void> schedule2HourNotifications() async {
+  try {
+    if (kDebugMode) debugPrint('⏰ Starting to schedule 2-hour notifications...');
+    
+    final granted = await ensureNotificationPermissions();
+    if (!granted) {
+      if (kDebugMode) debugPrint('❌ Permissions not granted for 2-hour notifications');
+      throw Exception('Notification permissions not granted');
+    }
+
+    // Times: 6am, 8am, 10am, 12pm, 2pm, 4pm, 6pm, 8pm, 10pm
+    final times = [
+      {'hour': 6, 'minute': 0, 'id': 2001, 'title': 'أذكار الصباح'},
+      {'hour': 8, 'minute': 0, 'id': 2002, 'title': 'تذكير الأذكار'},
+      {'hour': 10, 'minute': 0, 'id': 2003, 'title': 'تذكير الأذكار'},
+      {'hour': 12, 'minute': 0, 'id': 2004, 'title': 'تذكير الأذكار'},
+      {'hour': 14, 'minute': 0, 'id': 2005, 'title': 'تذكير الأذكار'},
+      {'hour': 16, 'minute': 0, 'id': 2006, 'title': 'تذكير الأذكار'},
+      {'hour': 18, 'minute': 0, 'id': 2007, 'title': 'أذكار المساء'},
+      {'hour': 20, 'minute': 0, 'id': 2008, 'title': 'تذكير الأذكار'},
+      {'hour': 22, 'minute': 0, 'id': 2009, 'title': 'تذكير الأذكار'},
+    ];
+
+    int successCount = 0;
+    for (final time in times) {
+      final success = await _schedule2HourNotification(
+        id: time['id'] as int,
+        hour: time['hour'] as int,
+        minute: time['minute'] as int,
+        title: time['title'] as String,
+      );
+      if (success) successCount++;
+    }
+
+    if (kDebugMode) {
+      debugPrint('✅ Successfully scheduled $successCount/${times.length} 2-hour notifications');
+      await debugPendingNotifications();
+    }
+  } catch (e) {
+    if (kDebugMode) debugPrint('❌ Error scheduling 2-hour notifications: $e');
+    rethrow;
+  }
+}
+
+Future<bool> _schedule2HourNotification({
+  required int id,
+  required int hour,
+  required int minute,
+  required String title,
+}) async {
+  final scheduledTime = _nextInstanceOfTZTime(TimeOfDay(hour: hour, minute: minute));
+
+  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'adhkar_2hour',
+    'تذكير كل ساعتين',
+    channelDescription: 'تذكير بالأذكار كل ساعتين من 06:00 صباحًا إلى 10:00 مساءً',
+    importance: Importance.max,
+    priority: Priority.max,
+    playSound: true,
+    enableVibration: true,
+    enableLights: true,
+    fullScreenIntent: true,
+    showWhen: true,
+    icon: '@mipmap/ic_launcher',
+  );
+
+  const NotificationDetails details = NotificationDetails(android: androidDetails);
+
+  // Cancel existing notification with same ID
+  await flutterLocalNotificationsPlugin.cancel(id);
+
+  try {
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      id,
+      title,
+      'حان وقت الأذكار - اضغط للقراءة',
+      scheduledTime,
+      details,
+      payload: 'sabah',
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+    if (kDebugMode) {
+      final now = tz.TZDateTime.now(tz.local);
+      debugPrint('  ✓ Scheduled #$id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} (next: ${scheduledTime.toString().split(' ')[1].substring(0, 8)})');
+    }
+    return true;
+  } catch (e) {
+    if (kDebugMode) debugPrint('  ✗ Failed to schedule #$id: $e');
+    return false;
+  }
+}
+
+// Cancel all 2-hour notifications
+Future<void> cancel2HourNotifications() async {
+  try {
+    // Cancel IDs 2001-2009
+    for (int id = 2001; id <= 2009; id++) {
+      await flutterLocalNotificationsPlugin.cancel(id);
+    }
+    if (kDebugMode) {
+      debugPrint('✅ All 2-hour notifications cancelled');
+      debugPendingNotifications();
+    }
+  } catch (e) {
+    if (kDebugMode) debugPrint('Error cancelling 2-hour notifications: $e');
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -396,6 +814,30 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   bool _darkMode = false;
   double _fontSize = 1.0;
+
+  TextTheme _buildTextTheme({
+    required Color bodyColor,
+    required Color displayColor,
+    required Color labelColor,
+  }) {
+    return TextTheme(
+      displayLarge: GoogleFonts.cairo(fontSize: 28 * _fontSize, fontWeight: FontWeight.w800, color: displayColor).copyWith(inherit: true),
+      displayMedium: GoogleFonts.cairo(fontSize: 26 * _fontSize, fontWeight: FontWeight.w700, color: displayColor).copyWith(inherit: true),
+      displaySmall: GoogleFonts.cairo(fontSize: 24 * _fontSize, fontWeight: FontWeight.w700, color: displayColor).copyWith(inherit: true),
+      headlineLarge: GoogleFonts.cairo(fontSize: 24 * _fontSize, fontWeight: FontWeight.w700, color: displayColor).copyWith(inherit: true),
+      headlineMedium: GoogleFonts.cairo(fontSize: 22 * _fontSize, fontWeight: FontWeight.w700, color: displayColor).copyWith(inherit: true),
+      headlineSmall: GoogleFonts.cairo(fontSize: 20 * _fontSize, fontWeight: FontWeight.w600, color: displayColor).copyWith(inherit: true),
+      titleLarge: GoogleFonts.cairo(fontSize: 20 * _fontSize, fontWeight: FontWeight.w600, color: bodyColor).copyWith(inherit: true),
+      titleMedium: GoogleFonts.cairo(fontSize: 18 * _fontSize, fontWeight: FontWeight.w600, color: bodyColor).copyWith(inherit: true),
+      titleSmall: GoogleFonts.cairo(fontSize: 16 * _fontSize, fontWeight: FontWeight.w600, color: bodyColor).copyWith(inherit: true),
+      bodyLarge: GoogleFonts.cairo(fontSize: 18 * _fontSize, color: bodyColor).copyWith(inherit: true),
+      bodyMedium: GoogleFonts.cairo(fontSize: 16 * _fontSize, color: bodyColor).copyWith(inherit: true),
+      bodySmall: GoogleFonts.cairo(fontSize: 14 * _fontSize, color: bodyColor).copyWith(inherit: true),
+      labelLarge: GoogleFonts.cairo(fontSize: 14 * _fontSize, fontWeight: FontWeight.w600, color: labelColor).copyWith(inherit: true),
+      labelMedium: GoogleFonts.cairo(fontSize: 12 * _fontSize, fontWeight: FontWeight.w600, color: labelColor).copyWith(inherit: true),
+      labelSmall: GoogleFonts.cairo(fontSize: 11 * _fontSize, fontWeight: FontWeight.w500, color: labelColor).copyWith(inherit: true),
+    );
+  }
 
   @override
   void initState() {
@@ -432,7 +874,19 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final lightTextTheme = _buildTextTheme(
+      bodyColor: Colors.black87,
+      displayColor: const Color(0xFF0B6623),
+      labelColor: Colors.black87,
+    );
+    final darkTextTheme = _buildTextTheme(
+      bodyColor: Colors.white70,
+      displayColor: const Color(0xFF4CAF50),
+      labelColor: Colors.white70,
+    );
+
     return MaterialApp(
+      key: ValueKey(_darkMode), // Force rebuild on theme change
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       // Arabic locale + RTL support
@@ -462,34 +916,18 @@ class _MyAppState extends State<MyApp> {
             fontSize: 20 * _fontSize,
             fontWeight: FontWeight.w700,
             color: Colors.white,
-          ),
+          ).copyWith(inherit: true),
           iconTheme: const IconThemeData(color: Colors.white),
         ),
-        textTheme: TextTheme(
-          displayLarge: GoogleFonts.cairo(
-              fontSize: 28 * _fontSize,
-              fontWeight: FontWeight.w800,
-              color: Colors.black87),
-          headlineMedium: GoogleFonts.cairo(
-              fontSize: 22 * _fontSize,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87),
-          bodyLarge: GoogleFonts.cairo(
-              fontSize: 18 * _fontSize, color: Colors.black87),
-          bodyMedium: GoogleFonts.cairo(
-              fontSize: 16 * _fontSize, color: Colors.black87),
-          labelLarge: GoogleFonts.cairo(
-              fontSize: 14 * _fontSize,
-              fontWeight: FontWeight.w600,
-              color: Colors.white),
-        ),
+        textTheme: lightTextTheme,
+        primaryTextTheme: lightTextTheme,
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF0B6623),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             textStyle: GoogleFonts.cairo(
-                fontSize: 16 * _fontSize, fontWeight: FontWeight.w700),
+                fontSize: 16 * _fontSize, fontWeight: FontWeight.w700).copyWith(inherit: true),
           ),
         ),
       ),
@@ -511,27 +949,11 @@ class _MyAppState extends State<MyApp> {
             fontSize: 20 * _fontSize,
             fontWeight: FontWeight.w700,
             color: Colors.white,
-          ),
+          ).copyWith(inherit: true),
           iconTheme: const IconThemeData(color: Colors.white),
         ),
-        textTheme: TextTheme(
-          displayLarge: GoogleFonts.cairo(
-              fontSize: 28 * _fontSize,
-              fontWeight: FontWeight.w800,
-              color: Colors.white),
-          headlineMedium: GoogleFonts.cairo(
-              fontSize: 22 * _fontSize,
-              fontWeight: FontWeight.w700,
-              color: Colors.white),
-          bodyLarge: GoogleFonts.cairo(
-              fontSize: 18 * _fontSize, color: Colors.white70),
-          bodyMedium: GoogleFonts.cairo(
-              fontSize: 16 * _fontSize, color: Colors.white70),
-          labelLarge: GoogleFonts.cairo(
-              fontSize: 14 * _fontSize,
-              fontWeight: FontWeight.w600,
-              color: Colors.white),
-        ),
+        textTheme: darkTextTheme,
+        primaryTextTheme: darkTextTheme,
       ),
       builder: (context, child) {
         // Force RTL for Arabic content and ensure text uses Cairo font

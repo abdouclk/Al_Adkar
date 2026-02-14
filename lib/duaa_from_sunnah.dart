@@ -1,4 +1,4 @@
-// ignore_for_file: use_super_parameters
+// ignore_for_file: use_super_parameters, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'widgets/app_scaffold.dart';
@@ -168,7 +168,7 @@ class _DuaaFromSunnahState extends State<DuaaFromSunnah> {
       return [
         SectionCard(
           title: '',
-          backgroundColor: Colors.white,
+          backgroundColor: theme.cardColor,
           child: Column(
             children: [
               Padding(
@@ -178,6 +178,7 @@ class _DuaaFromSunnahState extends State<DuaaFromSunnah> {
                   style: theme.textTheme.bodyLarge?.copyWith(
                     fontSize: 26,
                     height: 1.5,
+                    color: theme.colorScheme.onSurface,
                   ),
                   textAlign: TextAlign.center,
                   textDirection: TextDirection.rtl,
@@ -188,7 +189,9 @@ class _DuaaFromSunnahState extends State<DuaaFromSunnah> {
                 child: IconButton(
                   icon: Icon(
                     isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: isFavorite ? Colors.red : Colors.grey,
+                    color: isFavorite
+                        ? Colors.red
+                        : theme.colorScheme.onSurface.withOpacity(0.6),
                     size: 28,
                   ),
                   onPressed:

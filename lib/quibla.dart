@@ -490,45 +490,56 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                 SizedBox(height: 20),
                 // Calibration and refresh buttons
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: _calibrateCompass,
-                      icon: Icon(Icons.tune, color: Colors.white),
-                      label: Text(
-                        'معايرة البوصلة',
-                        style: GoogleFonts.cairo(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF0B6623),
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 6),
+                        child: ElevatedButton.icon(
+                          onPressed: _calibrateCompass,
+                          icon: Icon(Icons.tune, color: Colors.white, size: 18),
+                          label: Text(
+                            'معايرة البوصلة',
+                            style: GoogleFonts.cairo(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF0B6623),
+                            padding:
+                                EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    ElevatedButton.icon(
-                      onPressed: _getLocationAndCalculateQibla,
-                      icon: Icon(Icons.refresh, color: Colors.white),
-                      label: Text(
-                        'تحديث الموقع',
-                        style: GoogleFonts.cairo(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF1A8B3D),
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 6),
+                        child: ElevatedButton.icon(
+                          onPressed: _getLocationAndCalculateQibla,
+                          icon: Icon(Icons.refresh, color: Colors.white, size: 18),
+                          label: Text(
+                            'تحديث الموقع',
+                            style: GoogleFonts.cairo(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF1A8B3D),
+                            padding:
+                                EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -580,18 +591,6 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                         ],
                       ),
                       SizedBox(height: 12),
-                      Text(
-                        '• ابتعد عن الأجهزة الكهربائية والمعادن\n'
-                        '• استخدم الجهاز في مكان مفتوح\n'
-                        '• تأكد من تفعيل الموقع و البوصلة\n'
-                        '• قارن بين القراءة الحسابية والبوصلة\n'
-                        '• استخدم معايرة البوصلة عند الحاجة',
-                        style: GoogleFonts.cairo(
-                          fontSize: 14,
-                          color: Colors.orange.shade700,
-                          height: 1.5,
-                        ),
-                      ),
                     ],
                   ),
                 ),

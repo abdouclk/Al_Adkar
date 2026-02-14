@@ -119,7 +119,7 @@ class SectionCard extends StatelessWidget {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: backgroundColor ?? Colors.white,
+      color: backgroundColor ?? theme.cardColor,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),

@@ -49,6 +49,8 @@ class _SalatNabiiState extends State<SalatNabii> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return AppScaffold(
       title: 'الصلاة على النبي',
       body: SingleChildScrollView(
@@ -110,7 +112,10 @@ class _SalatNabiiState extends State<SalatNabii> {
                   ),
                   SizedBox(height: 12),
                   Text('اضغط الزر وكرر الذكر حتى تصل إلى 100',
-                      style: TextStyle(fontSize: 16, color: Colors.grey[700])),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      )),
                 ],
               ),
             ),
@@ -133,10 +138,17 @@ class _SalatNabiiState extends State<SalatNabii> {
     Color textColor = const Color.fromARGB(255, 0, 0, 0),
     Color containerColor = const Color.fromARGB(255, 255, 255, 255),
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final effectiveTextColor =
+        isDark ? theme.colorScheme.onSurface : textColor;
+    final effectiveContainerColor =
+        isDark ? theme.colorScheme.surface : containerColor;
+
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: containerColor,
+        color: effectiveContainerColor,
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
@@ -152,7 +164,7 @@ class _SalatNabiiState extends State<SalatNabii> {
         style: TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: fontSize,
-          color: textColor,
+          color: effectiveTextColor,
         ),
         textAlign: TextAlign.center,
       ),

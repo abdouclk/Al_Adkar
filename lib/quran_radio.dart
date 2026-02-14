@@ -111,6 +111,7 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return AppScaffold(
       title: 'إذاعة القرآن الكريم',
@@ -274,7 +275,7 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
                 style: GoogleFonts.cairo(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: theme.primaryColor,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
             ),
@@ -291,17 +292,18 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
                   margin: EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? theme.primaryColor.withOpacity(0.1)
-                        : Colors.white,
+                        ? theme.primaryColor.withOpacity(isDark ? 0.2 : 0.1)
+                        : theme.cardColor,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color:
-                          isSelected ? theme.primaryColor : Colors.transparent,
+                      color: isSelected
+                          ? theme.primaryColor
+                          : theme.dividerColor.withOpacity(0.2),
                       width: 2,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
                         blurRadius: 8,
                         offset: Offset(0, 2),
                       ),
@@ -318,7 +320,7 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
                         shape: BoxShape.circle,
                         color: isSelected
                             ? theme.primaryColor
-                            : theme.primaryColor.withOpacity(0.1),
+                            : theme.primaryColor.withOpacity(isDark ? 0.25 : 0.1),
                       ),
                       child: Icon(
                         isSelected ? Icons.radio : Icons.radio_button_unchecked,
@@ -331,14 +333,16 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
                         fontSize: 16,
                         fontWeight:
                             isSelected ? FontWeight.bold : FontWeight.w600,
-                        color: isSelected ? theme.primaryColor : Colors.black87,
+                        color: isSelected
+                            ? theme.primaryColor
+                            : theme.colorScheme.onSurface,
                       ),
                     ),
                     subtitle: Text(
                       _stations[index]['reciter']!,
                       style: GoogleFonts.cairo(
                         fontSize: 13,
-                        color: Colors.grey[600],
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
                       ),
                     ),
                     trailing: isSelected && _isPlaying

@@ -36,14 +36,19 @@ class KounouzMaghfira extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 20),
                   child: SectionCard(
                     title: '',
-                    child: Text(
-                      text,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
-                        color: Colors.black87,
+                    child: Builder(
+                      builder: (context) => Text(
+                        text,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                          color: Theme.of(context).textTheme.bodyLarge?.color ?? 
+                                 (Theme.of(context).brightness == Brightness.dark 
+                                   ? Colors.white 
+                                   : Colors.black87),
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
                 )),
@@ -55,12 +60,17 @@ class KounouzMaghfira extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              'aladkar.com©${DateTime.now().year}',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-                color: Color.fromARGB(211, 0, 0, 20),
+            Builder(
+              builder: (context) => Text(
+                'aladkar.com©${DateTime.now().year}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 17,
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7) ??
+                         (Theme.of(context).brightness == Brightness.dark
+                           ? Colors.white70
+                           : Color.fromARGB(211, 0, 0, 20)),
+                ),
               ),
             ),
           ],

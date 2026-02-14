@@ -1,4 +1,4 @@
-// ignore_for_file: use_super_parameters, prefer_const_constructors, deprecated_member_use
+// ignore_for_file: use_super_parameters, prefer_const_constructors, deprecated_member_use, unused_element, unnecessary_import
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -6,8 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'widgets/app_scaffold.dart';
 import 'main.dart';
-import 'package:timezone/timezone.dart' as tz;
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:io' show Platform;
 import 'package:android_intent_plus/android_intent.dart';
 
@@ -26,6 +24,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = false;
   bool _darkModeEnabled = false;
+  bool _2hourNotificationsEnabled = false;
   TimeOfDay _morningTime = TimeOfDay(hour: 6, minute: 0);
   TimeOfDay _eveningTime = TimeOfDay(hour: 18, minute: 0);
   String _notificationSound = 'default';
@@ -43,6 +42,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _notificationsEnabled =
           prefs.getBool('adhkar_notifications_enabled') ?? false;
       _darkModeEnabled = prefs.getBool('dark_mode_enabled') ?? false;
+      _2hourNotificationsEnabled =
+          prefs.getBool('adhkar_2hour_enabled') ?? false;
 
       // Load custom times
       final morningHour = prefs.getInt('morning_hour') ?? 6;
@@ -60,36 +61,137 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggleNotifications(bool value) async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() => _notificationsEnabled = value);
-    await prefs.setBool('adhkar_notifications_enabled', value);
 
     if (value) {
       // Ensure permission is granted on Android 13+
       final granted = await ensureNotificationPermissions();
       if (!granted) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('يرجى السماح للإشعارات من إعدادات النظام',
-                textAlign: TextAlign.center),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        setState(() => _notificationsEnabled = false);
+        await prefs.setBool('adhkar_notifications_enabled', false);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'يرجى السماح للإشعارات من إعدادات النظام\nالإعدادات > التطبيقات > الأذكار > الأذونات',
+                textAlign: TextAlign.center,
+              ),
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'فتح الإعدادات',
+                textColor: Colors.white,
+                onPressed: () async {
+                  // Try to open app settings
+                  if (Platform.isAndroid) {
+                    try {
+                      final intent = AndroidIntent(
+                        action: 'android.settings.APP_NOTIFICATION_SETTINGS',
+                        arguments: <String, dynamic>{
+                          'android.provider.extra.APP_PACKAGE':
+                              'com.abdouclk.aladkar',
+                        },
+                      );
+                      await intent.launch();
+                    } catch (_) {
+                      // Fallback to general settings
+                      final intent = AndroidIntent(
+                        action: 'android.settings.SETTINGS',
+                      );
+                      await intent.launch();
+                    }
+                  }
+                },
+              ),
+            ),
+          );
+        }
         return;
       }
+
       // Schedule with custom times and sound
-      await scheduleMorning(
-          hour: _morningTime.hour,
-          minute: _morningTime.minute,
-          sound: _notificationSound);
-      await scheduleEvening(
-          hour: _eveningTime.hour,
-          minute: _eveningTime.minute,
-          sound: _notificationSound);
+      try {
+        await scheduleMorning(
+            hour: _morningTime.hour,
+            minute: _morningTime.minute,
+            sound: _notificationSound);
+        await scheduleEvening(
+            hour: _eveningTime.hour,
+            minute: _eveningTime.minute,
+            sound: _notificationSound);
+
+        setState(() => _notificationsEnabled = true);
+        await prefs.setBool('adhkar_notifications_enabled', true);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'تم تفعيل تذكير الأذكار بنجاح ✓',
+                textAlign: TextAlign.center,
+              ),
+              backgroundColor: Color(0xFF0B6623),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() => _notificationsEnabled = false);
+        await prefs.setBool('adhkar_notifications_enabled', false);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'فشل جدولة الإشعارات\n\nالحل: افتح الإعدادات وفعّل:\n1. الإشعارات\n2. المنبهات والتذكيرات (Set alarms & reminders)',
+                textAlign: TextAlign.center,
+              ),
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 6),
+              action: SnackBarAction(
+                label: 'فتح الإعدادات',
+                textColor: Colors.white,
+                onPressed: () async {
+                  if (Platform.isAndroid) {
+                    try {
+                      final intent = AndroidIntent(
+                        action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
+                        data: 'package:com.abdouclk.aladkar',
+                      );
+                      await intent.launch();
+                    } catch (_) {
+                      // Fallback
+                      final intent = AndroidIntent(
+                        action: 'android.settings.SETTINGS',
+                      );
+                      await intent.launch();
+                    }
+                  }
+                },
+              ),
+            ),
+          );
+        }
+      }
     } else {
       // Cancel both
       await cancelMorning();
       await cancelEvening();
+      setState(() => _notificationsEnabled = false);
+      await prefs.setBool('adhkar_notifications_enabled', false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'تم إيقاف تذكير الأذكار',
+              textAlign: TextAlign.center,
+            ),
+            backgroundColor: Colors.grey.shade700,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -98,6 +200,110 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _darkModeEnabled = value);
     await prefs.setBool('dark_mode_enabled', value);
     widget.onThemeChanged(value);
+  }
+
+  Future<void> _toggle2HourNotifications(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (value) {
+      // Ensure permissions
+      final granted = await ensureNotificationPermissions();
+      if (!granted) {
+        setState(() => _2hourNotificationsEnabled = false);
+        await prefs.setBool('adhkar_2hour_enabled', false);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'يرجى السماح للإشعارات من إعدادات النظام',
+                textAlign: TextAlign.center,
+              ),
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 4),
+              action: SnackBarAction(
+                label: 'فتح الإعدادات',
+                textColor: Colors.white,
+                onPressed: () async {
+                  if (Platform.isAndroid) {
+                    try {
+                      final intent = AndroidIntent(
+                        action: 'android.settings.APP_NOTIFICATION_SETTINGS',
+                        arguments: <String, dynamic>{
+                          'android.provider.extra.APP_PACKAGE':
+                              'com.abdouclk.aladkar',
+                        },
+                      );
+                      await intent.launch();
+                    } catch (_) {
+                      final intent = AndroidIntent(
+                        action: 'android.settings.SETTINGS',
+                      );
+                      await intent.launch();
+                    }
+                  }
+                },
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Schedule 2-hour notifications
+      try {
+        await schedule2HourNotifications();
+        setState(() => _2hourNotificationsEnabled = true);
+        await prefs.setBool('adhkar_2hour_enabled', true);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'تم تفعيل التذكير كل ساعتين ✓\n(من 06:00 ص إلى 10:00 م)',
+                textAlign: TextAlign.center,
+              ),
+              backgroundColor: Color(0xFF0B6623),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() => _2hourNotificationsEnabled = false);
+        await prefs.setBool('adhkar_2hour_enabled', false);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'فشل جدولة الإشعارات - تحقق من الأذونات',
+                textAlign: TextAlign.center,
+              ),
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } else {
+      // Cancel 2-hour notifications
+      await cancel2HourNotifications();
+      setState(() => _2hourNotificationsEnabled = false);
+      await prefs.setBool('adhkar_2hour_enabled', false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'تم إيقاف التذكير كل ساعتين',
+              textAlign: TextAlign.center,
+            ),
+            backgroundColor: Colors.grey.shade700,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _pickMorningTime() async {
@@ -120,10 +326,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       // Reschedule if notifications are enabled
       if (_notificationsEnabled) {
-        await scheduleMorning(
-            hour: picked.hour,
-            minute: picked.minute,
-            sound: _notificationSound);
+        try {
+          // Ensure permissions before scheduling
+          final granted = await ensureNotificationPermissions();
+          if (!granted) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'يجب السماح بالإشعارات أولاً. افتح الإعدادات وفعّل الأذونات',
+                    textAlign: TextAlign.center,
+                  ),
+                  backgroundColor: Colors.redAccent,
+                  duration: Duration(seconds: 4),
+                ),
+              );
+            }
+            return;
+          }
+
+          await scheduleMorning(
+              hour: picked.hour,
+              minute: picked.minute,
+              sound: _notificationSound);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'تم تحديث وقت تذكير الصباح',
+                  textAlign: TextAlign.center,
+                ),
+                backgroundColor: Color(0xFF0B6623),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'فشل تحديث وقت التذكير: ${e.toString()}',
+                  textAlign: TextAlign.center,
+                ),
+                backgroundColor: Colors.redAccent,
+                duration: Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+      } else {
+        // Just save the time without scheduling
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'تم حفظ الوقت. فعّل الإشعارات لتطبيق التغييرات',
+                textAlign: TextAlign.center,
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       }
     }
   }
@@ -148,10 +414,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       // Reschedule if notifications are enabled
       if (_notificationsEnabled) {
-        await scheduleEvening(
-            hour: picked.hour,
-            minute: picked.minute,
-            sound: _notificationSound);
+        try {
+          // Ensure permissions before scheduling
+          final granted = await ensureNotificationPermissions();
+          if (!granted) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'يجب السماح بالإشعارات أولاً. افتح الإعدادات وفعّل الأذونات',
+                    textAlign: TextAlign.center,
+                  ),
+                  backgroundColor: Colors.redAccent,
+                  duration: Duration(seconds: 4),
+                ),
+              );
+            }
+            return;
+          }
+
+          await scheduleEvening(
+              hour: picked.hour,
+              minute: picked.minute,
+              sound: _notificationSound);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'تم تحديث وقت تذكير المساء',
+                  textAlign: TextAlign.center,
+                ),
+                backgroundColor: Color(0xFF0B6623),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'فشل تحديث وقت التذكير: ${e.toString()}',
+                  textAlign: TextAlign.center,
+                ),
+                backgroundColor: Colors.redAccent,
+                duration: Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+      } else {
+        // Just save the time without scheduling
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'تم حفظ الوقت. فعّل الإشعارات لتطبيق التغييرات',
+                textAlign: TextAlign.center,
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       }
     }
   }
@@ -206,45 +532,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: EdgeInsets.all(20),
         children: [
-          // Notifications Section
-          _buildSectionHeader('الإشعارات'),
+          // Notifications Info Section
+          _buildPermissionButton(),
+
+          SizedBox(height: 12),
+          // Test Notification Button
+          _buildTestNotificationButton(),
+          
+          SizedBox(height: 12),
+          // Debug: Show pending notifications
+          _buildDebugPendingButton(),
+
+          SizedBox(height: 24),
+          // 2-Hour Notifications Section
+          _buildSectionHeader('إشعارات الأذكار'),
           _buildSettingCard(
             icon: Icons.notifications_active,
-            title: 'إشعارات أذكار الصباح والمساء',
-            subtitle: _notificationsEnabled ? 'مفعّلة' : 'معطلة',
-            value: _notificationsEnabled,
-            onChanged: _toggleNotifications,
+            title: 'تذكير كل ساعتين',
+            subtitle: _2hourNotificationsEnabled
+                ? 'مفعّل (من 6ص - 10م)'
+                : 'معطل',
+            value: _2hourNotificationsEnabled,
+            onChanged: _toggle2HourNotifications,
           ),
-
-          // Time pickers (shown only if notifications enabled)
-          if (_notificationsEnabled) ...[
-            SizedBox(height: 12),
-            _buildTestNotificationButton(),
-            SizedBox(height: 12),
-            _buildScheduledTestButton(),
-            SizedBox(height: 12),
-            _buildOneMinuteTestButton(),
-            SizedBox(height: 12),
-            _buildTroubleshootCard(),
-            SizedBox(height: 12),
-            _buildTimePickerCard(
-              icon: Icons.wb_sunny,
-              title: 'وقت أذكار الصباح',
-              time: _morningTime,
-              onTap: _pickMorningTime,
-            ),
-            SizedBox(height: 12),
-            _buildTimePickerCard(
-              icon: Icons.nightlight_round,
-              title: 'وقت أذكار المساء',
-              time: _eveningTime,
-              onTap: _pickEveningTime,
-            ),
-            SizedBox(height: 12),
-            _buildSoundPickerCard(),
-          ],
-
+          
           SizedBox(height: 16),
+          // Battery optimization info card
+          _buildBatteryOptimizationCard(),
+
+          SizedBox(height: 24),
           // Appearance Section
           _buildSectionHeader('المظهر'),
           _buildSettingCard(
@@ -288,6 +604,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
           fontWeight: FontWeight.w800,
           color: Theme.of(context).primaryColor,
         ),
+      ),
+    );
+  }
+
+  // Info card for displaying notification information
+  Widget _buildInfoCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String description,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            iconColor.withOpacity(0.1),
+            iconColor.withOpacity(0.05),
+          ],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: iconColor.withOpacity(0.3),
+          width: 2,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: iconColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.cairo(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: iconColor,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  description,
+                  style: GoogleFonts.cairo(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -484,574 +870,390 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildTestNotificationButton() {
+  Widget _buildDebugTestCard() {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: Colors.orange.shade50,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+        border: Border.all(color: Colors.orange.shade300, width: 2),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.bug_report, color: Colors.orange.shade700),
+              SizedBox(width: 8),
+              Text('اختبار الإشعارات (تجريبي)',
+                  style: GoogleFonts.cairo(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.orange.shade900)),
+            ],
+          ),
+          SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: () async {
+              final success = await sendScheduledTestNotification();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      success
+                          ? 'تم جدولة إشعار تجريبي خلال 10 ثوانٍ. راقب الإشعارات!'
+                          : 'فشل جدولة الإشعار التجريبي',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.cairo(),
+                    ),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+              }
+            },
+            icon: Icon(Icons.alarm_add),
+            label: Text('اختبار إشعار مجدول (10 ثوانٍ)',
+                style: GoogleFonts.cairo(fontSize: 13)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 12),
+              minimumSize: Size(double.infinity, 48),
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'ملاحظة: إذا لم يظهر الإشعار، تحقق من أذونات "المنبهات الدقيقة" في إعدادات النظام',
+            style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey.shade700),
+            textAlign: TextAlign.center,
           ),
         ],
-      ),
-      child: ElevatedButton.icon(
-        onPressed: () async {
-          final ok = await sendTestNotification();
-          if (!mounted) return;
-          if (ok) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content:
-                    Text('تم إرسال إشعار تجريبي', textAlign: TextAlign.center),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    'لم يتم السماح بالإشعارات. فعّلها من إعدادات النظام ثم جرّب مرة أخرى.',
-                    textAlign: TextAlign.center),
-                backgroundColor: Colors.redAccent,
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
-        },
-        icon: Icon(Icons.notification_add),
-        label: Text(
-          'اختبار الإشعارات',
-          style: GoogleFonts.cairo(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.symmetric(vertical: 12),
-          minimumSize: Size(double.infinity, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
       ),
     );
   }
 
-  Widget _buildScheduledTestButton() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ElevatedButton.icon(
-        onPressed: () async {
-          final ok = await ensureNotificationPermissions();
-          if (!ok) {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    'لم يتم السماح بالإشعارات. فعّلها من إعدادات النظام ثم جرّب مرة أخرى.',
-                    textAlign: TextAlign.center),
-                backgroundColor: Colors.redAccent,
-                duration: Duration(seconds: 3),
-              ),
-            );
-            return;
-          }
-
-          // Extra diagnostics: check if exact alarms are allowed
-          final androidImpl = flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin>();
-          final canExact =
-              await androidImpl?.canScheduleExactNotifications() ?? false;
-          if (!canExact) {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    'النظام يمنع المنبّهات الدقيقة لهذا التطبيق. افتح إعدادات التطبيق وفعّل "Set alarms & reminders" ثم أعد المحاولة.',
-                    textAlign: TextAlign.center),
-                backgroundColor: Colors.orange,
-                duration: Duration(seconds: 5),
-              ),
-            );
-            _openExactAlarmSettings();
-            return;
-          }
-
-          // Schedule a notification 10 seconds from now
-          final when = tz.TZDateTime.now(tz.local).add(Duration(seconds: 10));
-          const AndroidNotificationDetails androidDetails =
-              AndroidNotificationDetails(
-            'adhkar_test',
-            'اختبار الإشعارات',
-            channelDescription: 'إشعار مجدول للاختبار بعد 10 ثوانٍ',
-            importance: Importance.high,
-            priority: Priority.high,
-          );
-          const NotificationDetails details =
-              NotificationDetails(android: androidDetails);
-
+  // Button to open app notification settings
+  Widget _buildPermissionButton() {
+    return ElevatedButton.icon(
+      onPressed: () async {
+        if (Platform.isAndroid) {
           try {
-            await flutterLocalNotificationsPlugin.zonedSchedule(
-              9010,
-              'اختبار الإشعارات (مجدول)',
-              'سيظهر هذا الإشعار بعد 10 ثوانٍ إن كانت الأذونات مفعلة',
-              when,
-              details,
-              uiLocalNotificationDateInterpretation:
-                  UILocalNotificationDateInterpretation.absoluteTime,
-              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            // Try to open exact alarm settings first
+            final intent = AndroidIntent(
+              action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
+              data: 'package:com.abdouclk.aladkar',
             );
-
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('تمت جدولة إشعار بعد 10 ثوانٍ',
-                    textAlign: TextAlign.center),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          } catch (e) {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    'فشل جدولة الإشعار. اضغط "السماح بالمنبّهات الدقيقة" أدناه وفعّل الإذن من إعدادات النظام',
-                    textAlign: TextAlign.center),
-                backgroundColor: Colors.red,
-                duration: Duration(seconds: 4),
-              ),
-            );
-          }
-        },
-        icon: Icon(Icons.schedule),
-        label: Text(
-          'تجربة إشعار بعد 10 ثوانٍ',
-          style: GoogleFonts.cairo(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.symmetric(vertical: 12),
-          minimumSize: Size(double.infinity, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOneMinuteTestButton() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ElevatedButton.icon(
-        onPressed: () async {
-          if (kDebugMode) print('DEBUG: Starting 1-minute test...');
-
-          final ok = await ensureNotificationPermissions();
-          if (!ok) {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    'فشل: لم يتم السماح بالإشعارات أو المنبّهات الدقيقة.\n'
-                    'استخدم أزرار "حل المشاكل" أدناه لفتح إعدادات النظام.',
-                    textAlign: TextAlign.center),
-                backgroundColor: Colors.redAccent,
-                duration: Duration(seconds: 5),
-              ),
-            );
-            return;
-          }
-
-          // Extra diagnostics before scheduling
-          final androidImpl = flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin>();
-          final canExact =
-              await androidImpl?.canScheduleExactNotifications() ?? false;
-          if (!canExact) {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    'النظام يمنع المنبّهات الدقيقة لهذا التطبيق. افتح إعدادات التطبيق وفعّل "Set alarms & reminders" ثم أعد المحاولة.',
-                    textAlign: TextAlign.center),
-                backgroundColor: Colors.orange,
-                duration: Duration(seconds: 5),
-              ),
-            );
-            _openExactAlarmSettings();
-            return;
-          }
-
-          if (kDebugMode) {
-            print('DEBUG: Permissions OK, scheduling notification...');
-          }
-
-          // Schedule a notification 1 minute from now
-          final when = tz.TZDateTime.now(tz.local).add(Duration(minutes: 1));
-          if (kDebugMode) {
-            print('DEBUG: Current time: ${tz.TZDateTime.now(tz.local)}');
-          }
-          if (kDebugMode) print('DEBUG: Scheduled for: $when');
-
-          const AndroidNotificationDetails androidDetails =
-              AndroidNotificationDetails(
-            'adhkar_test',
-            'اختبار الإشعارات',
-            channelDescription: 'إشعار مجدول للاختبار بعد دقيقة واحدة',
-            importance: Importance.max,
-            priority: Priority.high,
-            playSound: true,
-            enableVibration: true,
-          );
-          const NotificationDetails details =
-              NotificationDetails(android: androidDetails);
-
-          try {
-            await flutterLocalNotificationsPlugin.zonedSchedule(
-              9011,
-              'اختبار الإشعارات (دقيقة واحدة)',
-              'هذا إشعار تجريبي بعد دقيقة - إذا ظهر فالنظام يعمل بشكل صحيح',
-              when,
-              details,
-              uiLocalNotificationDateInterpretation:
-                  UILocalNotificationDateInterpretation.absoluteTime,
-              androidScheduleMode: AndroidScheduleMode.exact,
-            );
-            if (kDebugMode) {
-              print('DEBUG: Notification scheduled successfully with ID 9011');
+            await intent.launch();
+          } catch (_) {
+            try {
+              // Fallback to app details settings
+              final intent = AndroidIntent(
+                action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
+                data: 'package:com.abdouclk.aladkar',
+              );
+              await intent.launch();
+            } catch (_) {
+              // Final fallback to general settings
+              final intent = AndroidIntent(
+                action: 'android.settings.SETTINGS',
+              );
+              await intent.launch();
             }
-          } catch (e) {
-            if (kDebugMode) print('DEBUG: Error scheduling notification: $e');
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content:
-                    Text('فشل جدولة الإشعار: $e', textAlign: TextAlign.center),
-                backgroundColor: Colors.red,
-                duration: Duration(seconds: 4),
-              ),
-            );
-            return;
           }
+        }
+      },
+      icon: Icon(Icons.settings, size: 20),
+      label: Text(
+        'فتح إعدادات الأذونات',
+        style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.w700),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Color(0xFF0B6623),
+        foregroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+        minimumSize: Size(double.infinity, 50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 3,
+      ),
+    );
+  }
 
-          if (!mounted) return;
+  Widget _buildTestNotificationButton() {
+    return ElevatedButton.icon(
+      onPressed: () async {
+        final success = await sendTestNotification();
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                  'تمت جدولة إشعار بعد دقيقة واحدة عند ${when.hour}:${when.minute.toString().padLeft(2, '0')}\n'
-                  'انتظر دقيقة. إذا لم يظهر، اضغط "السماح بالمنبّهات الدقيقة" أدناه',
-                  textAlign: TextAlign.center),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 5),
+                success
+                    ? 'تم إرسال الإشعار بنجاح! ✓\nتحقق من شريط الإشعارات في الأعلى'
+                    : 'فشل إرسال الإشعار\nيرجى التحقق من أذونات الإشعارات في إعدادات الهاتف',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.cairo(fontSize: 14, height: 1.5),
+              ),
+              backgroundColor: success ? Color(0xFF0B6623) : Colors.red,
+              duration: Duration(seconds: success ? 3 : 5),
+              action: !success ? SnackBarAction(
+                label: 'فتح الإعدادات',
+                textColor: Colors.white,
+                onPressed: () async {
+                  if (Platform.isAndroid) {
+                    try {
+                      final intent = AndroidIntent(
+                        action: 'android.settings.APP_NOTIFICATION_SETTINGS',
+                        arguments: <String, dynamic>{
+                          'android.provider.extra.APP_PACKAGE':
+                              'com.abdouclk.aladkar',
+                        },
+                      );
+                      await intent.launch();
+                    } catch (_) {
+                      final intent = AndroidIntent(
+                        action: 'android.settings.SETTINGS',
+                      );
+                      await intent.launch();
+                    }
+                  }
+                },
+              ) : null,
             ),
           );
-        },
-        icon: Icon(Icons.timer),
-        label: Text(
-          'تجربة إشعار بعد دقيقة',
-          style: GoogleFonts.cairo(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+        }
+      },
+      icon: Icon(Icons.notification_add, size: 20),
+      label: Text(
+        'اختبار إشعار فوري',
+        style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.w700),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+        minimumSize: Size(double.infinity, 50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.symmetric(vertical: 12),
-          minimumSize: Size(double.infinity, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+        elevation: 3,
       ),
     );
   }
 
-  Widget _buildTroubleshootCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.3),
-          width: 1,
+  Widget _buildDebugPendingButton() {
+    return ElevatedButton.icon(
+      onPressed: () async {
+        try {
+          final pending = await flutterLocalNotificationsPlugin.pendingNotificationRequests();
+          
+          // Group by type
+          int twoHourCount = pending.where((n) => n.id >= 2001 && n.id <= 2009).length;
+          int dailyCount = pending.where((n) => n.id >= 1001 && n.id <= 1004).length;
+          int otherCount = pending.length - twoHourCount - dailyCount;
+          
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => Directionality(
+                textDirection: TextDirection.rtl,
+                child: AlertDialog(
+                  title: Text(
+                    'الإشعارات المجدولة',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'إجمالي: ${pending.length} إشعار',
+                        style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      SizedBox(height: 12),
+                      Text('تذكير كل ساعتين: $twoHourCount',
+                          style: GoogleFonts.cairo(fontSize: 14)),
+                      Text('الأذكار اليومية: $dailyCount',
+                          style: GoogleFonts.cairo(fontSize: 14)),
+                      if (otherCount > 0)
+                        Text('أخرى: $otherCount',
+                            style: GoogleFonts.cairo(fontSize: 14)),
+                      if (pending.isEmpty)
+                        Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text(
+                            'لا توجد إشعارات مجدولة حاليًا',
+                            style: GoogleFonts.cairo(
+                              fontSize: 14,
+                              color: Colors.red.shade700,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('حسنًا', style: GoogleFonts.cairo()),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('خطأ: ${e.toString()}', textAlign: TextAlign.center),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      },
+      icon: Icon(Icons.bug_report, size: 18),
+      label: Text(
+        'عرض الإشعارات المجدولة',
+        style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w600),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.grey.shade700,
+        foregroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        minimumSize: Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
+        elevation: 2,
+      ),
+    );
+  }
+
+  Widget _buildBatteryOptimizationCard() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.blue.shade200, width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.settings_suggest, color: Color(0xFF0B6623)),
-              const SizedBox(width: 8),
+              Icon(Icons.battery_alert, color: Colors.blue.shade700, size: 24),
+              SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('حل مشاكل الإشعارات المجدولة',
-                        style: GoogleFonts.cairo(
-                            fontSize: 15, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 4),
-                    Text(
-                      '⚠️ الحل: اضغط "إعدادات التطبيق" أدناه، ثم ابحث عن "Set alarms and reminders" أو "Alarms" وفعّله',
-                      style: GoogleFonts.cairo(
-                          fontSize: 11,
-                          color: Colors.red.shade700,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ],
+                child: Text(
+                  'نصيحة مهمة للإشعارات',
+                  style: GoogleFonts.cairo(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade900,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _quickActionButton(
-                icon: Icons.notifications_active,
-                label: 'إعدادات الإشعارات',
-                onTap: _openAppNotificationSettings,
+          SizedBox(height: 12),
+          Text(
+            'لضمان ظهور الإشعارات في الوقت المحدد، يُنصح بإيقاف تحسين البطارية للتطبيق.',
+            style: GoogleFonts.cairo(
+              fontSize: 14,
+              height: 1.6,
+              color: Colors.blue.shade900,
+            ),
+            textAlign: TextAlign.right,
+          ),
+          SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: () async {
+              if (Platform.isAndroid) {
+                try {
+                  // Try to open battery optimization settings for the app
+                  final intent = AndroidIntent(
+                    action: 'android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS',
+                  );
+                  await intent.launch();
+                  
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'ابحث عن "الأذكار" واختر "غير مقيد" أو "Unrestricted"',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.cairo(fontSize: 13),
+                        ),
+                        backgroundColor: Colors.blue.shade700,
+                        duration: Duration(seconds: 5),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  // Fallback: Open app details page
+                  try {
+                    final intent = AndroidIntent(
+                      action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
+                      data: 'package:com.abdouclk.aladkar',
+                    );
+                    await intent.launch();
+                    
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'افتح "البطارية" واختر "غير مقيد"',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.cairo(fontSize: 13),
+                          ),
+                          backgroundColor: Colors.blue.shade700,
+                          duration: Duration(seconds: 4),
+                        ),
+                      );
+                    }
+                  } catch (_) {
+                    // Final fallback
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'افتح: الإعدادات > التطبيقات > الأذكار > البطارية > غير مقيد',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.cairo(fontSize: 12),
+                          ),
+                          backgroundColor: Colors.orange,
+                          duration: Duration(seconds: 6),
+                        ),
+                      );
+                    }
+                  }
+                }
+              }
+            },
+            icon: Icon(Icons.battery_charging_full, size: 20),
+            label: Text(
+              'فتح إعدادات البطارية',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
-              _quickActionButton(
-                icon: Icons.alarm_on,
-                label: 'السماح بالمنبّهات الدقيقة',
-                onTap: _openExactAlarmSettings,
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade700,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
-              _quickActionButton(
-                icon: Icons.settings_applications,
-                label: 'إعدادات التطبيق',
-                onTap: _openAppSettings,
-              ),
-              _quickActionButton(
-                icon: Icons.battery_alert,
-                label: 'إلغاء قيود البطارية',
-                onTap: _openBatteryOptimization,
-              ),
-              _quickActionButton(
-                icon: Icons.play_circle_fill,
-                label: 'التشغيل التلقائي (Oppo)',
-                onTap: _openOppoAutoStart,
-              ),
-              _quickActionButton(
-                icon: Icons.list_alt,
-                label: 'عرض الإشعارات المجدولة',
-                onTap: _showPendingNotifications,
-              ),
-            ],
-          )
+              elevation: 2,
+            ),
+          ),
         ],
       ),
     );
-  }
-
-  Widget _quickActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 18),
-      label: Text(label, style: GoogleFonts.cairo(fontSize: 12)),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        side:
-            BorderSide(color: Theme.of(context).primaryColor.withOpacity(0.4)),
-        foregroundColor: Theme.of(context).primaryColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
-
-  void _openAppNotificationSettings() {
-    if (!Platform.isAndroid) return;
-    final intent = AndroidIntent(
-      action: 'android.settings.APP_NOTIFICATION_SETTINGS',
-      arguments: <String, dynamic>{
-        'android.provider.extra.APP_PACKAGE': 'com.abdouclk.aladkar',
-      },
-    );
-    intent.launch();
-  }
-
-  void _openAppSettings() {
-    if (!Platform.isAndroid) return;
-    final intent = AndroidIntent(
-      action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
-      data: 'package:com.abdouclk.aladkar',
-    );
-    intent.launch();
-  }
-
-  void _openExactAlarmSettings() {
-    if (!Platform.isAndroid) return;
-    // Try multiple intents to reach the exact alarm permission page on different OEMs
-    final intents = <AndroidIntent>[
-      // Official Android 12+ intent
-      AndroidIntent(action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM'),
-      // Same with package argument
-      AndroidIntent(
-        action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
-        arguments: <String, dynamic>{
-          'android.provider.extra.APP_PACKAGE': 'com.abdouclk.aladkar',
-        },
-      ),
-      // App details (from here user can navigate to special access)
-      AndroidIntent(
-        action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
-        data: 'package:com.abdouclk.aladkar',
-      ),
-      // Manage apps list
-      AndroidIntent(action: 'android.settings.MANAGE_APPLICATIONS_SETTINGS'),
-      AndroidIntent(
-          action: 'android.settings.MANAGE_ALL_APPLICATIONS_SETTINGS'),
-      // Fallback to general settings
-      AndroidIntent(action: 'android.settings.SETTINGS'),
-    ];
-
-    for (final intent in intents) {
-      try {
-        intent.launch();
-        break; // stop after first successful launch attempt
-      } catch (_) {
-        // try next
-      }
-    }
-  }
-
-  void _openBatteryOptimization() {
-    if (!Platform.isAndroid) return;
-    final intent = AndroidIntent(
-      action: 'android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS',
-    );
-    intent.launch();
-  }
-
-  void _openOppoAutoStart() {
-    if (!Platform.isAndroid) return;
-    // Try common OPPO/ColorOS autostart settings activities
-    final candidates = <AndroidIntent>[
-      AndroidIntent(
-        action: 'android.intent.action.MAIN',
-        package: 'com.coloros.safecenter',
-        componentName:
-            'com.coloros.safecenter.startupapp.StartupAppListActivity',
-      ),
-      AndroidIntent(
-        action: 'android.intent.action.MAIN',
-        package: 'com.oppo.safe',
-        componentName:
-            'com.oppo.safe.permission.startup.StartupAppListActivity',
-      ),
-      AndroidIntent(
-        action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
-        data: 'package:com.abdouclk.aladkar',
-      ),
-    ];
-
-    // Try intents sequentially
-    for (final intent in candidates) {
-      intent.launch();
-    }
-  }
-
-  void _showPendingNotifications() async {
-    try {
-      final pending =
-          await flutterLocalNotificationsPlugin.pendingNotificationRequests();
-      if (!mounted) return;
-
-      if (pending.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('لا توجد إشعارات مجدولة حاليًا',
-                textAlign: TextAlign.center),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('الإشعارات المجدولة',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: pending.map((notification) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Text(
-                    'ID: ${notification.id}\n'
-                    'العنوان: ${notification.title ?? 'بدون عنوان'}\n'
-                    'المحتوى: ${notification.body ?? 'بدون محتوى'}',
-                    style: GoogleFonts.cairo(fontSize: 13),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('إغلاق', style: GoogleFonts.cairo()),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('فشل في عرض الإشعارات المجدولة',
-              textAlign: TextAlign.center),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 
   Widget _buildFontSizeCard() {

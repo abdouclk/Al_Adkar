@@ -90,10 +90,17 @@ class _DhikrCardState extends State<DhikrCard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final effectiveContainerColor =
+        isDark ? theme.colorScheme.surface : widget.containerColor;
+    final effectiveTextColor =
+        isDark ? theme.colorScheme.onSurface : widget.textColor;
+
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: widget.containerColor,
+        color: effectiveContainerColor,
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
@@ -116,7 +123,7 @@ class _DhikrCardState extends State<DhikrCard> {
                   style: GoogleFonts.cairo(
                     fontWeight: FontWeight.bold,
                     fontSize: widget.fontSize,
-                    color: widget.textColor,
+                    color: effectiveTextColor,
                     height: 1.6,
                   ),
                   textAlign: TextAlign.center,
@@ -128,7 +135,7 @@ class _DhikrCardState extends State<DhikrCard> {
                     style: GoogleFonts.cairo(
                       fontSize: widget.fontSize * 0.7,
                       fontStyle: FontStyle.italic,
-                      color: widget.textColor.withOpacity(0.7),
+                      color: effectiveTextColor.withOpacity(0.7),
                     ),
                     textAlign: TextAlign.center,
                   ),

@@ -139,36 +139,15 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
         children: [
           _buildHeader(next, nextTime),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _scheduleNextPrayerNotification,
-                  icon: const Icon(Icons.notifications_active),
-                  label:
-                      Text('إشعار الصلاة القادمة', style: GoogleFonts.cairo()),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
-                onPressed: _testPrayerNotification,
-                icon: const Icon(Icons.alarm),
-                label: Text('اختبار', style: GoogleFonts.cairo()),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ],
+          ElevatedButton.icon(
+            onPressed: _scheduleNextPrayerNotification,
+            icon: const Icon(Icons.notifications_active),
+            label: Text('إشعار الصلاة القادمة', style: GoogleFonts.cairo()),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
           ),
           const SizedBox(height: 16),
           _buildLocationCard(),
@@ -234,42 +213,6 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
               style: GoogleFonts.cairo()),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 3)),
-    );
-  }
-
-  Future<void> _testPrayerNotification() async {
-    final granted = await NotificationHelper.ensureNotificationPermissions();
-    if (!granted) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('الرجاء تفعيل إذن الإشعارات من الإعدادات',
-                style: GoogleFonts.cairo()),
-            backgroundColor: Colors.redAccent),
-      );
-      return;
-    }
-
-    await NotificationHelper.createPrayerChannelIfNeeded();
-
-    // Schedule a test notification 5 seconds from now
-    final testTime = DateTime.now().add(const Duration(seconds: 5));
-
-    await NotificationHelper.scheduleAt(
-      id: 3002,
-      time: testTime,
-      title: 'اختبار إشعار الصلاة 🕌',
-      body: 'هذا إشعار تجريبي لأوقات الصلاة - يعمل بنجاح!',
-      payload: 'prayer_test',
-    );
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text('تم جدولة إشعار تجريبي خلال 5 ثوانٍ',
-              style: GoogleFonts.cairo()),
-          backgroundColor: Colors.orange,
-          duration: const Duration(seconds: 2)),
     );
   }
 

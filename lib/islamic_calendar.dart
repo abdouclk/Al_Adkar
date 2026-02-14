@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hijri/hijri_calendar.dart';
 import 'widgets/app_scaffold.dart';
 
 class IslamicCalendarScreen extends StatefulWidget {
@@ -34,32 +35,16 @@ class _IslamicCalendarScreenState extends State<IslamicCalendarScreen> {
 
   // Important Islamic dates list removed as the section is hidden
 
-  // Convert Gregorian to Hijri (simplified approximation)
+  // Convert Gregorian to Hijri (Umm al-Qura accurate)
   Map<String, int> gregorianToHijri(DateTime gregorianDate) {
-    // Islamic calendar started on July 16, 622 CE
-    final islamicEpoch = DateTime(622, 7, 16);
-    final daysSinceEpoch = gregorianDate.difference(islamicEpoch).inDays;
-
-    // Average Islamic year is about 354.36 days
-    final islamicYear = (daysSinceEpoch / 354.36).floor() + 1;
-    final daysInYear = (daysSinceEpoch % 354.36).floor();
-
-    // Calculate month (approximation)
-    int month = (daysInYear / 29.5).floor() + 1;
-    if (month > 12) month = 12;
-
-    int day = (daysInYear % 29.5).floor() + 1;
-    if (day > 29) day = 29;
-
-    return {'year': islamicYear, 'month': month, 'day': day};
+    final hijri = HijriCalendar.fromDate(gregorianDate);
+    return {'year': hijri.hYear, 'month': hijri.hMonth, 'day': hijri.hDay};
   }
 
-  // Convert Hijri to Gregorian (simplified approximation)
+  // Convert Hijri to Gregorian (Umm al-Qura accurate)
   DateTime hijriToGregorian(int year, int month, int day) {
-    final islamicEpoch = DateTime(622, 7, 16);
-    final daysSinceEpoch =
-        ((year - 1) * 354.36 + (month - 1) * 29.5 + day).round();
-    return islamicEpoch.add(Duration(days: daysSinceEpoch));
+    final hijri = HijriCalendar();
+    return hijri.hijriToGregorian(year, month, day);
   }
 
   Future<void> _selectDate(BuildContext context) async {
