@@ -260,7 +260,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'تم تفعيل التذكير كل ساعتين ✓\n(من 06:00 ص إلى 10:00 م)',
+                'تم تفعيل التذكير كل ساعتين ✓\n(من 04:00 ص إلى 10:00 م)',
                 textAlign: TextAlign.center,
               ),
               backgroundColor: Color(0xFF0B6623),
@@ -550,7 +550,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.notifications_active,
             title: 'تذكير كل ساعتين',
             subtitle: _2hourNotificationsEnabled
-                ? 'مفعّل (من 6ص - 10م)'
+                ? 'مفعّل (من 4ص - 10م)'
                 : 'معطل',
             value: _2hourNotificationsEnabled,
             onChanged: _toggle2HourNotifications,
@@ -1048,7 +1048,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final pending = await flutterLocalNotificationsPlugin.pendingNotificationRequests();
           
           // Group by type
-          int twoHourCount = pending.where((n) => n.id >= 2001 && n.id <= 2009).length;
+          int twoHourCount = pending.where((n) => n.id >= 2001 && n.id <= 2010).length;
           int dailyCount = pending.where((n) => n.id >= 1001 && n.id <= 1004).length;
           int otherCount = pending.length - twoHourCount - dailyCount;
           

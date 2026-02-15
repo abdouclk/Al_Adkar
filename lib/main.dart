@@ -168,12 +168,12 @@ Future<void> initNotifications() async {
       ),
     );
     
-    // 2-hour reminders channel (every 2 hours from 6am to 10pm)
+    // 2-hour reminders channel (every 2 hours from 4am to 10pm)
     await androidImpl?.createNotificationChannel(
       const AndroidNotificationChannel(
         'adhkar_2hour',
         'تذكير كل ساعتين',
-        description: 'تذكير بالأذكار كل ساعتين من 06:00 صباحًا إلى 10:00 مساءً',
+        description: 'تذكير بالأذكار كل ساعتين من 04:00 صباحًا إلى 10:00 مساءً',
         importance: Importance.max,
         playSound: true,
         enableVibration: true,
@@ -692,7 +692,7 @@ Future<bool> sendScheduledTestNotification() async {
   }
 }
 
-// Schedule 2-hour repeating notifications (6am to 10pm)
+// Schedule 2-hour repeating notifications (4am to 10pm)
 Future<void> schedule2HourNotifications() async {
   try {
     if (kDebugMode) debugPrint('⏰ Starting to schedule 2-hour notifications...');
@@ -703,17 +703,18 @@ Future<void> schedule2HourNotifications() async {
       throw Exception('Notification permissions not granted');
     }
 
-    // Times: 6am, 8am, 10am, 12pm, 2pm, 4pm, 6pm, 8pm, 10pm
+    // Times: 4am, 6am, 8am, 10am, 12pm, 2pm, 4pm, 6pm, 8pm, 10pm
     final times = [
-      {'hour': 6, 'minute': 0, 'id': 2001, 'title': 'أذكار الصباح'},
-      {'hour': 8, 'minute': 0, 'id': 2002, 'title': 'تذكير الأذكار'},
-      {'hour': 10, 'minute': 0, 'id': 2003, 'title': 'تذكير الأذكار'},
-      {'hour': 12, 'minute': 0, 'id': 2004, 'title': 'تذكير الأذكار'},
-      {'hour': 14, 'minute': 0, 'id': 2005, 'title': 'تذكير الأذكار'},
-      {'hour': 16, 'minute': 0, 'id': 2006, 'title': 'تذكير الأذكار'},
-      {'hour': 18, 'minute': 0, 'id': 2007, 'title': 'أذكار المساء'},
-      {'hour': 20, 'minute': 0, 'id': 2008, 'title': 'تذكير الأذكار'},
-      {'hour': 22, 'minute': 0, 'id': 2009, 'title': 'تذكير الأذكار'},
+      {'hour': 4, 'minute': 0, 'id': 2001, 'title': 'تذكير الأذكار'},
+      {'hour': 6, 'minute': 0, 'id': 2002, 'title': 'أذكار الصباح'},
+      {'hour': 8, 'minute': 0, 'id': 2003, 'title': 'تذكير الأذكار'},
+      {'hour': 10, 'minute': 0, 'id': 2004, 'title': 'تذكير الأذكار'},
+      {'hour': 12, 'minute': 0, 'id': 2005, 'title': 'تذكير الأذكار'},
+      {'hour': 14, 'minute': 0, 'id': 2006, 'title': 'تذكير الأذكار'},
+      {'hour': 16, 'minute': 0, 'id': 2007, 'title': 'تذكير الأذكار'},
+      {'hour': 18, 'minute': 0, 'id': 2008, 'title': 'أذكار المساء'},
+      {'hour': 20, 'minute': 0, 'id': 2009, 'title': 'تذكير الأذكار'},
+      {'hour': 22, 'minute': 0, 'id': 2010, 'title': 'تذكير الأذكار'},
     ];
 
     int successCount = 0;
@@ -748,7 +749,7 @@ Future<bool> _schedule2HourNotification({
   const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
     'adhkar_2hour',
     'تذكير كل ساعتين',
-    channelDescription: 'تذكير بالأذكار كل ساعتين من 06:00 صباحًا إلى 10:00 مساءً',
+    channelDescription: 'تذكير بالأذكار كل ساعتين من 04:00 صباحًا إلى 10:00 مساءً',
     importance: Importance.max,
     priority: Priority.max,
     playSound: true,
@@ -791,8 +792,8 @@ Future<bool> _schedule2HourNotification({
 // Cancel all 2-hour notifications
 Future<void> cancel2HourNotifications() async {
   try {
-    // Cancel IDs 2001-2009
-    for (int id = 2001; id <= 2009; id++) {
+    // Cancel IDs 2001-2010
+    for (int id = 2001; id <= 2010; id++) {
       await flutterLocalNotificationsPlugin.cancel(id);
     }
     if (kDebugMode) {
