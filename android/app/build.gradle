@@ -93,8 +93,9 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'
     // Material Components library required by Material themes used in styles.xml
     implementation 'com.google.android.material:material:1.9.0'
-    // Provide Play Core classes referenced by Flutter's PlayStore deferred components embedding
-    implementation 'com.google.android.play:core:1.10.3'
+    // Updated Play Core libraries compatible with Android 14 (SDK 34)
+    implementation 'com.google.android.play:app-update:2.1.0'
+    implementation 'com.google.android.play:review:2.0.1'
 }
 
 // Apply Google Services plugin only when google-services.json is present

@@ -1044,73 +1044,114 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildDebugPendingButton() {
     return ElevatedButton.icon(
       onPressed: () async {
-        try {
-          final pending = await flutterLocalNotificationsPlugin.pendingNotificationRequests();
-          
-          // Group by type
-          int twoHourCount = pending.where((n) => n.id >= 2001 && n.id <= 2010).length;
-          int dailyCount = pending.where((n) => n.id >= 1001 && n.id <= 1004).length;
-          int otherCount = pending.length - twoHourCount - dailyCount;
-          
-          if (mounted) {
-            showDialog(
-              context: context,
-              builder: (context) => Directionality(
-                textDirection: TextDirection.rtl,
-                child: AlertDialog(
-                  title: Text(
-                    'الإشعارات المجدولة',
-                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'إجمالي: ${pending.length} إشعار',
-                        style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.w600),
+        // Read current settings instead of querying native layer
+        // (pendingNotificationRequests() crashes on some devices)
+        final prefs = await SharedPreferences.getInstance();
+        final twoHourEnabled = prefs.getBool('adhkar_2hour_enabled') ?? false;
+        final morningEnabled = _notificationsEnabled;
+        final eveningEnabled = _notificationsEnabled;
+        
+        // Calculate expected counts based on settings
+        int twoHourCount = twoHourEnabled ? 10 : 0;
+        int dailyCount = (morningEnabled ? 1 : 0) + (eveningEnabled ? 1 : 0);
+        int totalCount = twoHourCount + dailyCount;
+        
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => Directionality(
+              textDirection: TextDirection.rtl,
+              child: AlertDialog(
+                title: Text(
+                  'حالة الإشعارات',
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'الإشعارات المفعّلة:',
+                      style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(
+                          twoHourEnabled ? Icons.check_circle : Icons.cancel,
+                          color: twoHourEnabled ? Colors.green : Colors.grey,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'تذكير كل ساعتين (10 إشعارات)',
+                          style: GoogleFonts.cairo(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          morningEnabled ? Icons.check_circle : Icons.cancel,
+                          color: morningEnabled ? Colors.green : Colors.grey,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'أذكار الصباح',
+                          style: GoogleFonts.cairo(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          eveningEnabled ? Icons.check_circle : Icons.cancel,
+                          color: eveningEnabled ? Colors.green : Colors.grey,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'أذكار المساء',
+                          style: GoogleFonts.cairo(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    Divider(),
+                    Text(
+                      'المجموع المتوقع: $totalCount إشعار',
+                      style: GoogleFonts.cairo(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: totalCount > 0 ? Colors.green.shade700 : Colors.red.shade700,
                       ),
-                      SizedBox(height: 12),
-                      Text('تذكير كل ساعتين: $twoHourCount',
-                          style: GoogleFonts.cairo(fontSize: 14)),
-                      Text('الأذكار اليومية: $dailyCount',
-                          style: GoogleFonts.cairo(fontSize: 14)),
-                      if (otherCount > 0)
-                        Text('أخرى: $otherCount',
-                            style: GoogleFonts.cairo(fontSize: 14)),
-                      if (pending.isEmpty)
-                        Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: Text(
-                            'لا توجد إشعارات مجدولة حاليًا',
-                            style: GoogleFonts.cairo(
-                              fontSize: 14,
-                              color: Colors.red.shade700,
-                            ),
+                    ),
+                    if (totalCount == 0)
+                      Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'لم يتم تفعيل أي إشعارات',
+                          style: GoogleFonts.cairo(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
                           ),
                         ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('حسنًا', style: GoogleFonts.cairo()),
-                    ),
+                      ),
                   ],
                 ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('حسنًا', style: GoogleFonts.cairo()),
+                  ),
+                ],
               ),
-            );
-          }
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('خطأ: ${e.toString()}', textAlign: TextAlign.center),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+            ),
+          );
         }
       },
       icon: Icon(Icons.bug_report, size: 18),
