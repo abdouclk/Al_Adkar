@@ -71,7 +71,7 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
           androidNotificationChannelName: 'إذاعة القرآن الكريم',
           androidNotificationIcon: 'mipmap/ic_launcher',
           androidShowNotificationBadge: true,
-          androidNotificationOngoing: true,
+          androidNotificationOngoing: false, // Fixed: must be false when androidStopForegroundOnPause is false
           androidStopForegroundOnPause: false, // Keep notification when paused
           notificationColor: Color(0xFF0B6623),
         ),
