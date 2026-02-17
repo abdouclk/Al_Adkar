@@ -556,15 +556,6 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                       ? 'دقة: ±${_currentPosition!.accuracy.toStringAsFixed(0)} متر'
                       : _locationInfo,
                 ),
-                SizedBox(height: 15),
-                _buildInfoCard(
-                  icon: Icons.straighten,
-                  title: 'المسافة إلى مكة',
-                  value: _currentPosition != null
-                      ? '${_calculateDistanceToMecca(_currentPosition!).toStringAsFixed(0)} كم'
-                      : 'غير محدد',
-                  subtitle: 'المسافة المباشرة عبر الكرة الأرضية',
-                ),
                 SizedBox(height: 30),
                 Container(
                   padding: EdgeInsets.all(20),
