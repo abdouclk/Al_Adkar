@@ -1,4 +1,4 @@
-// ignore_for_file: use_super_parameters, prefer_const_constructors, deprecated_member_use
+// ignore_for_file: use_super_parameters, prefer_const_constructors, deprecated_member_use, avoid_print
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -104,7 +104,32 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
   }
 
   Future<void> _playPause() async {
-    if (_audioHandler == null) return;
+    if (_audioHandler == null) {
+      // Audio service not initialized - show error and try to reinitialize
+      print('ERROR: Audio handler is null! Attempting to reinitialize...');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('جاري تهيئة الراديو...', textAlign: TextAlign.center),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      await _initAudioService();
+      if (_audioHandler == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('فشل تهيئة الراديو. يرجى إعادة فتح الشاشة', textAlign: TextAlign.center),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+    }
 
     if (_isPlaying) {
       await _audioHandler!.stop();
@@ -112,12 +137,14 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
       setState(() => _isLoading = true);
       try {
         final station = _stations[_selectedStationIndex];
+        print('Playing station: ${station['name']}');
         await _audioHandler!.playStation(
           station['url']!,
           station['name']!,
           station['reciter']!,
         );
       } catch (e) {
+        print('Error playing station: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

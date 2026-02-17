@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors
+// ignore_for_file: prefer_const_constructors, avoid_print
 
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
@@ -10,7 +10,7 @@ import 'package:just_audio/just_audio.dart';
 /// - No auto-stop
 class QuranRadioHandler extends BaseAudioHandler {
   final AudioPlayer _player = AudioPlayer();
-  
+
   QuranRadioHandler() {
     // Initialize playback state
     playbackState.add(PlaybackState(
@@ -19,10 +19,10 @@ class QuranRadioHandler extends BaseAudioHandler {
       playing: false,
       processingState: AudioProcessingState.idle,
     ));
-    
+
     // Listen to player state changes and update playback state
     _player.playbackEventStream.listen(_updatePlaybackState);
-    
+
     // Listen to player errors
     _player.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
@@ -32,7 +32,8 @@ class QuranRadioHandler extends BaseAudioHandler {
   }
 
   /// Play a radio station
-  Future<void> playStation(String url, String stationName, String reciter) async {
+  Future<void> playStation(
+      String url, String stationName, String reciter) async {
     try {
       // Update media item (shows in notification)
       mediaItem.add(MediaItem(
@@ -46,10 +47,10 @@ class QuranRadioHandler extends BaseAudioHandler {
 
       // Set audio source
       await _player.setUrl(url);
-      
+
       // Start playing
       await _player.play();
-      
+
       // Update state to playing
       playbackState.add(playbackState.value.copyWith(
         controls: [

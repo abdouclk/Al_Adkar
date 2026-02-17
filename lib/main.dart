@@ -779,7 +779,6 @@ Future<bool> _schedule2HourNotification({
       matchDateTimeComponents: DateTimeComponents.time,
     );
     if (kDebugMode) {
-      final now = tz.TZDateTime.now(tz.local);
       debugPrint('  ✓ Scheduled #$id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} (next: ${scheduledTime.toString().split(' ')[1].substring(0, 8)})');
     }
     return true;
