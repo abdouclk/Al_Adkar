@@ -2,6 +2,7 @@
 
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:audio_session/audio_session.dart';
 
 /// Audio handler for Quran Radio that provides:
 /// - Background playback
@@ -10,9 +11,13 @@ import 'package:just_audio/just_audio.dart';
 /// - No auto-stop
 class QuranRadioHandler extends BaseAudioHandler {
   final AudioPlayer _player = AudioPlayer();
+  bool _sessionConfigured = false;
 
   QuranRadioHandler() {
     print('🎵 [Handler] Constructor called - creating new QuranRadioHandler');
+    
+    // Configure audio session
+    _configureAudioSession();
     
     // Initialize playback state
     print('🎵 [Handler] Initializing playback state...');
@@ -40,6 +45,30 @@ class QuranRadioHandler extends BaseAudioHandler {
     print('✅ [Handler] Player state listener set');
     
     print('✅ [Handler] QuranRadioHandler fully constructed');
+  }
+
+  /// Configure audio session for background playback
+  Future<void> _configureAudioSession() async {
+    try {
+      print('🎵 [Handler] Configuring audio session...');
+      final session = await AudioSession.instance;
+      await session.configure(AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playback,
+        avAudioSessionMode: AVAudioSessionMode.spokenAudio,
+        androidAudioAttributes: AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.music,
+          usage: AndroidAudioUsage.media,
+        ),
+        androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+        androidWillPauseWhenDucked: false,
+      ));
+      _sessionConfigured = true;
+      print('✅ [Handler] Audio session configured for background playback');
+    } catch (e, stack) {
+      print('❌ [Handler] Failed to configure audio session: $e');
+      print('Stack: $stack');
+      // Continue anyway - might work without session config
+    }
   }
 
   /// Play a radio station
