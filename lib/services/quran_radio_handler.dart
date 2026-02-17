@@ -12,6 +12,14 @@ class QuranRadioHandler extends BaseAudioHandler {
   final AudioPlayer _player = AudioPlayer();
   
   QuranRadioHandler() {
+    // Initialize playback state
+    playbackState.add(PlaybackState(
+      controls: [],
+      systemActions: const {},
+      playing: false,
+      processingState: AudioProcessingState.idle,
+    ));
+    
     // Listen to player state changes and update playback state
     _player.playbackEventStream.listen(_updatePlaybackState);
     
