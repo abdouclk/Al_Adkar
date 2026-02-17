@@ -47,20 +47,22 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
       duration: Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
-    _initAudioService();
+    // Don't initialize here - wait until user presses Play
+    // This avoids double-initialization when navigating to screen multiple times
   }
 
   /// Initialize audio service with foreground service
   Future<void> _initAudioService() async {
     print('🎵 [QuranRadio] Starting audio service initialization...');
-    try {
-      // Check if already initialized
-      if (_audioHandler != null) {
-        print('🎵 [QuranRadio] Audio service already initialized');
-        return;
-      }
+    
+    // Check if already initialized in this widget
+    if (_audioHandler != null) {
+      print('🎵 [QuranRadio] Audio handler already set in widget');
+      return;
+    }
 
-      print('🎵 [QuranRadio] Creating audio handler...');
+    try {
+      print('🎵 [QuranRadio] Creating new audio handler...');
       QuranRadioHandler handler = QuranRadioHandler();
       print('🎵 [QuranRadio] Handler created, calling AudioService.init...');
       
@@ -71,8 +73,8 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
           androidNotificationChannelName: 'إذاعة القرآن الكريم',
           androidNotificationIcon: 'mipmap/ic_launcher',
           androidShowNotificationBadge: true,
-          androidNotificationOngoing: false, // Fixed: must be false when androidStopForegroundOnPause is false
-          androidStopForegroundOnPause: false, // Keep notification when paused
+          androidNotificationOngoing: false,
+          androidStopForegroundOnPause: false,
           notificationColor: Color(0xFF0B6623),
         ),
       );
@@ -97,11 +99,28 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
       });
       
       print('🎵 [QuranRadio] Setting initial volume to $_volume');
-
-      // Set initial volume
       await _audioHandler!.setVolume(_volume);
-      
       print('✅ [QuranRadio] Audio service fully initialized and ready!');
+      
+    } on AssertionError catch (e, stackTrace) {
+      // AudioService already initialized - this is OK, just log it
+      print('⚠️ [QuranRadio] AudioService already initialized (this is OK): $e');
+      print('🎵 [QuranRadio] Attempting to reuse existing handler...');
+      
+      // The handler was already created in the try block, so _audioHandler might be set
+      // If not, we need to handle this gracefully
+      if (_audioHandler == null) {
+        print('❌ [QuranRadio] Cannot retrieve existing handler - please restart app');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('يرجى إعادة تشغيل التطبيق لاستخدام الراديو', textAlign: TextAlign.center),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
     } catch (e, stackTrace) {
       print('❌ [QuranRadio] Error initializing audio service: $e');
       print('❌ [QuranRadio] Stack trace: $stackTrace');
