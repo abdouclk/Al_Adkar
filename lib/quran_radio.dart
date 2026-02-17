@@ -2,7 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:audio_service/audio_service.dart';
+import 'services/quran_radio_handler.dart';
 import 'widgets/app_scaffold.dart';
 
 class QuranRadio extends StatefulWidget {
@@ -13,7 +14,7 @@ class QuranRadio extends StatefulWidget {
 }
 
 class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  QuranRadioHandler? _audioHandler;
   bool _isPlaying = false;
   bool _isLoading = false;
   double _volume = 0.7;
@@ -46,77 +47,77 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
       duration: Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
-    // Configure audio player for background playback
-    _configureAudioPlayer();
-
-    _audioPlayer.onPlayerStateChanged.listen((state) {
-      if (mounted) {
-        setState(() {
-          _isPlaying = state == PlayerState.playing;
-          _isLoading = state == PlayerState.playing ? false : _isLoading;
-        });
-      }
-    });
-
-    _audioPlayer.setVolume(_volume);
+    _initAudioService();
   }
 
-  /// Configure audio player for background playback and media notifications
-  Future<void> _configureAudioPlayer() async {
+  /// Initialize audio service with foreground service
+  Future<void> _initAudioService() async {
     try {
-      // Set audio context for background playback
-      await _audioPlayer.setAudioContext(
-        AudioContext(
-          android: AudioContextAndroid(
-            isSpeakerphoneOn: false,
-            stayAwake: true, // Keep device awake during playback
-            contentType: AndroidContentType.music,
-            usageType: AndroidUsageType.media,
-            audioFocus: AndroidAudioFocus.gain, // Proper audio focus handling
-          ),
-          iOS: AudioContextIOS(
-            category: AVAudioSessionCategory.playback,
-            options: [
-              AVAudioSessionOptions.mixWithOthers,
-              AVAudioSessionOptions.duckOthers,
-            ],
-          ),
+      _audioHandler = await AudioService.init(
+        builder: () => QuranRadioHandler(),
+        config: AudioServiceConfig(
+          androidNotificationChannelId: 'com.abdouclk.aladkar.radio',
+          androidNotificationChannelName: 'إذاعة القرآن الكريم',
+          androidNotificationIcon: 'mipmap/ic_launcher',
+          androidShowNotificationBadge: true,
+          androidNotificationOngoing: true,
+          androidStopForegroundOnPause: false, // Keep notification when paused
+          notificationColor: Color(0xFF0B6623),
         ),
       );
 
-      // Set release mode to keep player alive when app is in background
-      await _audioPlayer.setReleaseMode(ReleaseMode.stop);
+      // Listen to playback state changes
+      _audioHandler?.playbackState.listen((state) {
+        if (mounted) {
+          setState(() {
+            _isPlaying = state.playing;
+            _isLoading = state.processingState == AudioProcessingState.loading ||
+                state.processingState == AudioProcessingState.buffering;
+          });
+        }
+      });
+
+      // Set initial volume
+      await _audioHandler?.setVolume(_volume);
     } catch (e) {
-      print('Error configuring audio player: $e');
+      print('Error initializing audio service: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في تهيئة الراديو', textAlign: TextAlign.center),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
     _pulseController.dispose();
+    // Don't dispose audio handler here - it continues in background
     super.dispose();
   }
 
   Future<void> _playPause() async {
+    if (_audioHandler == null) return;
+
     if (_isPlaying) {
-      await _audioPlayer.pause();
+      await _audioHandler!.stop();
     } else {
       setState(() => _isLoading = true);
       try {
         final station = _stations[_selectedStationIndex];
-        
-        // Play with proper player mode for background support
-        await _audioPlayer.play(
-          UrlSource(station['url']!),
-          mode: PlayerMode.mediaPlayer, // Use media player mode for background
+        await _audioHandler!.playStation(
+          station['url']!,
+          station['name']!,
+          station['reciter']!,
         );
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content:
-                  Text('خطأ في الاتصال بالإذاعة', textAlign: TextAlign.center),
+              content: Text('خطأ في الاتصال بالإذاعة', textAlign: TextAlign.center),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -127,10 +128,10 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
   }
 
   Future<void> _changeStation(int index) async {
-    if (_selectedStationIndex == index) return;
+    if (_selectedStationIndex == index || _audioHandler == null) return;
 
     final wasPlaying = _isPlaying;
-    await _audioPlayer.stop();
+    await _audioHandler!.stop();
 
     setState(() {
       _selectedStationIndex = index;
@@ -143,7 +144,7 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
 
   Future<void> _changeVolume(double value) async {
     setState(() => _volume = value);
-    await _audioPlayer.setVolume(value);
+    await _audioHandler?.setVolume(value);
   }
 
   @override

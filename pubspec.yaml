@@ -32,7 +32,8 @@ dependencies:
   timezone: ^0.10.0
   webview_flutter: ^4.8.0
   shared_preferences: ^2.2.2
-  audioplayers: ^5.2.1
+  audio_service: ^0.18.15
+  just_audio: ^0.9.40
   hijri: ^3.0.0
   flutter:
     sdk: flutter
