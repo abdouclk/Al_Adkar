@@ -53,6 +53,7 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
   /// Initialize audio service with foreground service
   Future<void> _initAudioService() async {
     try {
+      print('Initializing audio service...');
       _audioHandler = await AudioService.init(
         builder: () => QuranRadioHandler(),
         config: AudioServiceConfig(
@@ -65,6 +66,7 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
           notificationColor: Color(0xFF0B6623),
         ),
       );
+      print('Audio service initialized successfully');
 
       // Listen to playback state changes
       _audioHandler?.playbackState.listen((state) {
@@ -79,13 +81,15 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
 
       // Set initial volume
       await _audioHandler?.setVolume(_volume);
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Error initializing audio service: $e');
+      print('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطأ في تهيئة الراديو', textAlign: TextAlign.center),
+            content: Text('خطأ في تهيئة الراديو. يرجى التحقق من الأذونات', textAlign: TextAlign.center),
             backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 4),
           ),
         );
       }
