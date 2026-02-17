@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.abdouclk.aladkar"
     xmlns:tools="http://schemas.android.com/tools">
     <!-- Notification permissions -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -16,14 +17,13 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK" />
 
     <application
     android:label="الأذكار"
         android:icon="@mipmap/ic_launcher">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.abdouclk.aladkar.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/LaunchTheme"

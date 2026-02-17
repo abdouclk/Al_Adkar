@@ -204,6 +204,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggle2HourNotifications(bool value) async {
     print('🔔 Toggle 2-hour notifications called with value: $value');
+    
+    // Update UI immediately for responsiveness
+    setState(() => _2hourNotificationsEnabled = value);
+    
     final prefs = await SharedPreferences.getInstance();
 
     if (value) {
