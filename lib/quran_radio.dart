@@ -1,6 +1,7 @@
 // ignore_for_file: use_super_parameters, prefer_const_constructors, deprecated_member_use, avoid_print
 
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:audio_service/audio_service.dart';
 import 'services/quran_radio_handler.dart';
@@ -14,12 +15,18 @@ class QuranRadio extends StatefulWidget {
 }
 
 class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
-  QuranRadioHandler? _audioHandler;
+  // Use a static variable to persist the handler across screen transitions
+  static QuranRadioHandler? _globalAudioHandler;
+  
+  // Local state variables
   bool _isPlaying = false;
   bool _isLoading = false;
   double _volume = 0.7;
   int _selectedStationIndex = 0;
   late AnimationController _pulseController;
+  
+  // Stream subscription to track state changes
+  StreamSubscription? _playbackSubscription;
 
   final List<Map<String, String>> _stations = [
     {
@@ -47,17 +54,48 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
       duration: Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
-    // Don't initialize here - wait until user presses Play
-    // This avoids double-initialization when navigating to screen multiple times
+    // If global handler already exists, sync state and listen
+    if (_globalAudioHandler != null) {
+      print('🎵 [QuranRadio] Reusing existing global handler in initState');
+      _initPlaybackListeners();
+    }
+  }
+
+  void _initPlaybackListeners() {
+    if (_globalAudioHandler == null) return;
+    
+    // Sync initial state from handler
+    final state = _globalAudioHandler!.playbackState.value;
+    setState(() {
+      _isPlaying = state.playing;
+      _isLoading = state.processingState == AudioProcessingState.loading ||
+          state.processingState == AudioProcessingState.buffering;
+    });
+
+    // Cancel old subscription before creating a new one for this widget instance
+    _playbackSubscription?.cancel();
+    
+    // Listen to playback state changes
+    _playbackSubscription = _globalAudioHandler!.playbackState.listen((state) {
+      print('🎵 [QuranRadio] Playback state sync: playing=${state.playing}, processingState=${state.processingState}');
+      if (mounted) {
+        setState(() {
+          _isPlaying = state.playing;
+          _isLoading = state.processingState == AudioProcessingState.loading ||
+              state.processingState == AudioProcessingState.buffering;
+        });
+      }
+    });
   }
 
   /// Initialize audio service with foreground service
   Future<void> _initAudioService() async {
     print('🎵 [QuranRadio] Starting audio service initialization...');
     
-    // Check if already initialized in this widget
-    if (_audioHandler != null) {
-      print('🎵 [QuranRadio] Audio handler already set in widget');
+    // Check if already initialized globally
+    if (_globalAudioHandler != null) {
+      print('🎵 [QuranRadio] Global handler already exists, reusing...');
+      _initPlaybackListeners();
       return;
     }
 
@@ -66,7 +104,7 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
       QuranRadioHandler handler = QuranRadioHandler();
       print('🎵 [QuranRadio] Handler created, calling AudioService.init...');
       
-      _audioHandler = await AudioService.init(
+      _globalAudioHandler = await AudioService.init(
         builder: () => handler,
         config: AudioServiceConfig(
           androidNotificationChannelId: 'com.abdouclk.aladkar.radio',
@@ -79,52 +117,36 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
         ),
       );
       
-      print('🎵 [QuranRadio] AudioService.init completed!');
-      print('🎵 [QuranRadio] Handler instance: ${_audioHandler != null ? "NOT NULL" : "NULL"}');
+      print('🎵 [QuranRadio] AudioService.init successfully completed');
 
-      if (_audioHandler == null) {
+      if (_globalAudioHandler == null) {
         throw Exception('AudioService.init returned null');
       }
 
-      // Listen to playback state changes
-      _audioHandler!.playbackState.listen((state) {
-        print('🎵 [QuranRadio] Playback state changed: playing=${state.playing}, processingState=${state.processingState}');
-        if (mounted) {
-          setState(() {
-            _isPlaying = state.playing;
-            _isLoading = state.processingState == AudioProcessingState.loading ||
-                state.processingState == AudioProcessingState.buffering;
-          });
-        }
-      });
+      // Initialize listeners
+      _initPlaybackListeners();
       
       print('🎵 [QuranRadio] Setting initial volume to $_volume');
-      await _audioHandler!.setVolume(_volume);
-      print('✅ [QuranRadio] Audio service fully initialized and ready!');
+      await _globalAudioHandler!.setVolume(_volume);
+      print('✅ [QuranRadio] Audio service fully initialized!');
       
-    } on AssertionError catch (e, stackTrace) {
-      // AudioService already initialized - this is OK, just log it
-      print('⚠️ [QuranRadio] AudioService already initialized (this is OK): $e');
-      print('🎵 [QuranRadio] Attempting to reuse existing handler...');
-      
-      // The handler was already created in the try block, so _audioHandler might be set
-      // If not, we need to handle this gracefully
-      if (_audioHandler == null) {
-        print('❌ [QuranRadio] Cannot retrieve existing handler - please restart app');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('يرجى إعادة تشغيل التطبيق لاستخدام الراديو', textAlign: TextAlign.center),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
+    } on AssertionError catch (e) {
+      // AudioService already initialized - this shouldn't happen with our global variable check
+      // but if it does, it's a critical state issue.
+      print('⚠️ [QuranRadio] AudioService singleton collision: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('الراديو يعمل بالفعل في الخلفية. يرجى إعادة تشغيل التطبيق إذا واجهت مشكلة.', textAlign: TextAlign.center),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ),
+        );
       }
     } catch (e, stackTrace) {
-      print('❌ [QuranRadio] Error initializing audio service: $e');
+      print('❌ [QuranRadio] Critical init error: $e');
       print('❌ [QuranRadio] Stack trace: $stackTrace');
-      _audioHandler = null;
+      _globalAudioHandler = null;
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -141,16 +163,17 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
   @override
   void dispose() {
     _pulseController.dispose();
-    // Don't dispose audio handler here - it continues in background
+    _playbackSubscription?.cancel();
+    // NEVER dispose _globalAudioHandler here as it must persist for background playback
     super.dispose();
   }
 
   Future<void> _playPause() async {
     print('🎵 [QuranRadio] Play/Pause button pressed');
-    print('🎵 [QuranRadio] Current handler state: ${_audioHandler != null ? "NOT NULL" : "NULL"}');
+    print('🎵 [QuranRadio] Current handler state: ${_globalAudioHandler != null ? "NOT NULL" : "NULL"}');
     print('🎵 [QuranRadio] Current playing state: $_isPlaying');
     
-    if (_audioHandler == null) {
+    if (_globalAudioHandler == null) {
       // Audio service not initialized - show error and try to reinitialize
       print('❌ [QuranRadio] Audio handler is null! Attempting to reinitialize...');
       if (mounted) {
@@ -165,7 +188,7 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
       
       await _initAudioService();
       
-      if (_audioHandler == null) {
+      if (_globalAudioHandler == null) {
         print('❌ [QuranRadio] Reinitialization failed!');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -183,7 +206,7 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
 
     if (_isPlaying) {
       print('🎵 [QuranRadio] Stopping playback...');
-      await _audioHandler!.stop();
+      await _globalAudioHandler!.stop();
       print('✅ [QuranRadio] Playback stopped');
     } else {
       print('🎵 [QuranRadio] Starting playback...');
@@ -193,7 +216,7 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
         print('🎵 [QuranRadio] Selected station: ${station['name']}');
         print('🎵 [QuranRadio] URL: ${station['url']}');
         
-        await _audioHandler!.playStation(
+        await _globalAudioHandler!.playStation(
           station['url']!,
           station['name']!,
           station['reciter']!,
@@ -216,10 +239,10 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
   }
 
   Future<void> _changeStation(int index) async {
-    if (_selectedStationIndex == index || _audioHandler == null) return;
+    if (_selectedStationIndex == index || _globalAudioHandler == null) return;
 
     final wasPlaying = _isPlaying;
-    await _audioHandler!.stop();
+    await _globalAudioHandler!.stop();
 
     setState(() {
       _selectedStationIndex = index;
@@ -232,7 +255,7 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
 
   Future<void> _changeVolume(double value) async {
     setState(() => _volume = value);
-    await _audioHandler?.setVolume(value);
+    await _globalAudioHandler?.setVolume(value);
   }
 
   @override
