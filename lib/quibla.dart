@@ -565,35 +565,6 @@ class _QuiblaState extends State<Quibla> with SingleTickerProviderStateMixin {
                       : 'غير محدد',
                   subtitle: 'المسافة المباشرة عبر الكرة الأرضية',
                 ),
-                SizedBox(height: 15),
-                // Accuracy tips card
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.orange.shade200),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.info, color: Colors.orange, size: 24),
-                          SizedBox(width: 8),
-                          Text(
-                            'نصائح لتحسين دقة البوصلة',
-                            style: GoogleFonts.cairo(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange.shade800,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 12),
-                    ],
-                  ),
-                ),
                 SizedBox(height: 30),
                 Container(
                   padding: EdgeInsets.all(20),
