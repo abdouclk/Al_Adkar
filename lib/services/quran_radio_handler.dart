@@ -12,30 +12,46 @@ class QuranRadioHandler extends BaseAudioHandler {
   final AudioPlayer _player = AudioPlayer();
 
   QuranRadioHandler() {
+    print('🎵 [Handler] Constructor called - creating new QuranRadioHandler');
+    
     // Initialize playback state
+    print('🎵 [Handler] Initializing playback state...');
     playbackState.add(PlaybackState(
       controls: [],
       systemActions: const {},
       playing: false,
       processingState: AudioProcessingState.idle,
     ));
+    print('✅ [Handler] Initial playback state set');
 
     // Listen to player state changes and update playback state
+    print('🎵 [Handler] Setting up player event listeners...');
     _player.playbackEventStream.listen(_updatePlaybackState);
+    print('✅ [Handler] Playback event listener set');
 
     // Listen to player errors
     _player.playerStateStream.listen((state) {
+      print('🎵 [Handler] Player state changed: ${state.processingState}');
       if (state.processingState == ProcessingState.completed) {
+        print('🎵 [Handler] Stream completed, stopping...');
         stop();
       }
     });
+    print('✅ [Handler] Player state listener set');
+    
+    print('✅ [Handler] QuranRadioHandler fully constructed');
   }
 
   /// Play a radio station
   Future<void> playStation(
       String url, String stationName, String reciter) async {
+    print('🎵 [Handler] playStation called');
+    print('🎵 [Handler] URL: $url');
+    print('🎵 [Handler] Station: $stationName');
+    
     try {
       // Update media item (shows in notification)
+      print('🎵 [Handler] Setting media item...');
       mediaItem.add(MediaItem(
         id: url,
         title: stationName,
@@ -44,14 +60,20 @@ class QuranRadioHandler extends BaseAudioHandler {
         playable: true,
         duration: null, // Live stream has no duration
       ));
+      print('✅ [Handler] Media item set');
 
       // Set audio source
+      print('🎵 [Handler] Setting audio URL...');
       await _player.setUrl(url);
+      print('✅ [Handler] Audio URL set');
 
       // Start playing
+      print('🎵 [Handler] Starting player...');
       await _player.play();
+      print('✅ [Handler] Player started');
 
       // Update state to playing
+      print('🎵 [Handler] Updating playback state...');
       playbackState.add(playbackState.value.copyWith(
         controls: [
           MediaControl.stop,
@@ -62,12 +84,15 @@ class QuranRadioHandler extends BaseAudioHandler {
         playing: true,
         processingState: AudioProcessingState.ready,
       ));
-    } catch (e) {
-      print('Error playing station: $e');
+      print('✅ [Handler] Playback state updated - playing=true');
+    } catch (e, stackTrace) {
+      print('❌ [Handler] Error playing station: $e');
+      print('❌ [Handler] Stack trace: $stackTrace');
       playbackState.add(playbackState.value.copyWith(
         processingState: AudioProcessingState.error,
         playing: false,
       ));
+      rethrow; // Re-throw so the UI can catch it
     }
   }
 

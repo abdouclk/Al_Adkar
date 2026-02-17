@@ -203,12 +203,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _toggle2HourNotifications(bool value) async {
+    print('🔔 Toggle 2-hour notifications called with value: $value');
     final prefs = await SharedPreferences.getInstance();
 
     if (value) {
+      print('🔔 Enabling 2-hour notifications...');
       // Ensure permissions
+      print('🔔 Checking notification permissions...');
       final granted = await ensureNotificationPermissions();
+      print('🔔 Permissions granted: $granted');
+      
       if (!granted) {
+        print('❌ Permissions not granted!');
         setState(() => _2hourNotificationsEnabled = false);
         await prefs.setBool('adhkar_2hour_enabled', false);
 
@@ -252,9 +258,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       // Schedule 2-hour notifications
       try {
+        print('🔔 Starting to schedule 2-hour notifications...');
         await schedule2HourNotifications();
+        print('✅ Successfully scheduled notifications!');
+        
         setState(() => _2hourNotificationsEnabled = true);
         await prefs.setBool('adhkar_2hour_enabled', true);
+        print('✅ State and preferences updated');
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -268,7 +278,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           );
         }
-      } catch (e) {
+      } catch (e, stackTrace) {
+        print('❌ Error scheduling notifications: $e');
+        print('Stack trace: $stackTrace');
+        
         setState(() => _2hourNotificationsEnabled = false);
         await prefs.setBool('adhkar_2hour_enabled', false);
 
@@ -276,7 +289,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'فشل جدولة الإشعارات - تحقق من الأذونات',
+                'فشل جدولة الإشعارات - تحقق من الأذونات\n$e',
                 textAlign: TextAlign.center,
               ),
               backgroundColor: Colors.redAccent,
@@ -286,10 +299,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     } else {
+      print('🔔 Disabling 2-hour notifications...');
       // Cancel 2-hour notifications
       await cancel2HourNotifications();
       setState(() => _2hourNotificationsEnabled = false);
       await prefs.setBool('adhkar_2hour_enabled', false);
+      print('✅ 2-hour notifications disabled');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
