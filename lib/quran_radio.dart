@@ -46,6 +46,9 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
       duration: Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
+    // Configure audio player for background playback
+    _configureAudioPlayer();
+
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (mounted) {
         setState(() {
@@ -56,6 +59,36 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
     });
 
     _audioPlayer.setVolume(_volume);
+  }
+
+  /// Configure audio player for background playback and media notifications
+  Future<void> _configureAudioPlayer() async {
+    try {
+      // Set audio context for background playback
+      await _audioPlayer.setAudioContext(
+        AudioContext(
+          android: AudioContextAndroid(
+            isSpeakerphoneOn: false,
+            stayAwake: true, // Keep device awake during playback
+            contentType: AndroidContentType.music,
+            usageType: AndroidUsageType.media,
+            audioFocus: AndroidAudioFocus.gain, // Proper audio focus handling
+          ),
+          iOS: AudioContextIOS(
+            category: AVAudioSessionCategory.playback,
+            options: [
+              AVAudioSessionOptions.mixWithOthers,
+              AVAudioSessionOptions.duckOthers,
+            ],
+          ),
+        ),
+      );
+
+      // Set release mode to keep player alive when app is in background
+      await _audioPlayer.setReleaseMode(ReleaseMode.stop);
+    } catch (e) {
+      print('Error configuring audio player: $e');
+    }
   }
 
   @override
@@ -71,8 +104,13 @@ class _QuranRadioState extends State<QuranRadio> with TickerProviderStateMixin {
     } else {
       setState(() => _isLoading = true);
       try {
-        await _audioPlayer
-            .play(UrlSource(_stations[_selectedStationIndex]['url']!));
+        final station = _stations[_selectedStationIndex];
+        
+        // Play with proper player mode for background support
+        await _audioPlayer.play(
+          UrlSource(station['url']!),
+          mode: PlayerMode.mediaPlayer, // Use media player mode for background
+        );
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
