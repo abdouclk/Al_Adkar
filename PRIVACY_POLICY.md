@@ -1,72 +1,91 @@
 # Privacy Policy for Al-Adkar App
 
-**Last Updated: February 15, 2026**
+**Last Updated: March 8, 2026**
 
 ## Introduction
 
-Al-Adkar ("الأذكار") is committed to protecting your privacy. This Privacy Policy explains how we handle information in our Islamic companion app.
+Al-Adkar ("الأذكار") is an Islamic companion app that provides adhkar, prayer times, Qibla direction, Hijri calendar tools, favorites, notifications, and hadith flashcards. This Privacy Policy explains how the app handles data.
 
 ## Information We Collect
 
-### Information We DO NOT Collect:
-- We do NOT collect any personal information
-- We do NOT track your usage
-- We do NOT store your data on external servers
-- We do NOT share any information with third parties
-- We do NOT use analytics or tracking tools
+### Information We DO NOT Collect
 
-### Information Stored Locally on Your Device:
-- **App Preferences**: Dark mode settings, font size preferences
-- **Favorites**: Adhkar you mark as favorites (stored only on your device)
-- **Notification Settings**: Your notification preferences and scheduled times
-- **Location Data**: Used ONLY for calculating prayer times and Qibla direction. This data:
-  - Is processed locally on your device
-  - Is never sent to any server
-  - Is never stored permanently
-  - Requires your explicit permission
+- We do not collect personal information.
+- We do not create user accounts.
+- We do not use analytics or tracking tools.
+- We do not sell or share user data with third parties.
+- We do not store user data on our own servers.
 
-## Permissions Required
+### Information Stored Locally on Your Device
 
-### Location Permission (Optional):
-- **Why we need it**: To calculate accurate prayer times for your location and show Qibla direction
-- **How we use it**: The location is read once when you open prayer times or Qibla screens
-- **Not required**: You can use most features without granting this permission
+The app stores some information locally on your device so features can work properly:
 
-### Notification Permission:
-- **Why we need it**: To send you reminders for daily adhkar
-- **How we use it**: Scheduled locally on your device
-- **You control it**: You can enable/disable notifications in app settings
+- **App preferences**: such as theme and font size.
+- **Favorites**: adhkar or items you save as favorites.
+- **Notification settings**: reminder preferences and scheduled times.
+- **Flashcard assets**: hadith flashcard images packaged inside the app.
 
-### Exact Alarm Permission (Android 12+):
-- **Why we need it**: To ensure notifications appear at the exact scheduled time
-- **How we use it**: For reliable prayer time alerts and adhkar reminders
+### Location Data
 
-### Internet Permission:
-- **Why we need it**: ONLY for Quran Radio streaming feature
-- **Offline**: All other features work completely offline
+If you choose to grant location permission, the app uses your location only to:
+
+- calculate prayer times,
+- determine Qibla direction,
+- help with timezone-related prayer calculations.
+
+This location data:
+
+- is processed on your device,
+- is not sold,
+- is not shared with third parties,
+- is not stored on our servers,
+- is only accessed when needed for the related feature.
+
+## Permissions Used
+
+### Location Permission (Optional)
+
+- **Why we use it**: to calculate accurate prayer times and show Qibla direction.
+- **When it is used**: only when you open location-based features.
+- **Required?** No. Most app features can still be used without it.
+
+### Notification Permission
+
+- **Why we use it**: to send local reminders for adhkar and prayer-related notifications.
+- **How it works**: notifications are scheduled locally on your device.
+- **Your control**: you can enable or disable notifications in the app or system settings.
+
+### Exact Alarm Permission (Android 12+)
+
+- **Why we use it**: to deliver reminders at the exact scheduled time.
+- **How it works**: used only for locally scheduled reminders and notifications.
+
+## Data Sharing
+
+We do not share your personal data with third parties because we do not collect personal data in the first place.
 
 ## Data Security
 
-- All your data is stored locally on your device
-- No data is transmitted to external servers
-- No accounts or login required
-- No cloud backup or sync
+- Data used by the app is stored locally on your device.
+- No login is required.
+- No cloud sync is provided by the app.
+- No personal data is transmitted to our servers.
 
 ## Children's Privacy
 
-Our app does not target children under 13, but it is safe for all ages. We do not collect any information from anyone, including children.
+The app is suitable for general audiences. We do not knowingly collect personal information from children under 13 or from any other users.
 
-## Changes to Privacy Policy
+## Changes to This Privacy Policy
 
-We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy in the app and updating the "Last Updated" date.
+We may update this Privacy Policy from time to time. When we do, we will update the "Last Updated" date on this page.
 
 ## Contact Us
 
-If you have any questions about this Privacy Policy, please contact us at:
+If you have any questions about this Privacy Policy, you can contact us at:
 
 **Email**: abdouclk@gmail.com  
 **Website**: https://aladkar.com
 
 ---
 
-**In Summary**: We respect your privacy completely. We don't collect, store, or share any of your personal information. Everything stays on your device.
+**Summary**: Al-Adkar is designed to work with privacy in mind. Your preferences, favorites, and reminders stay on your device, and the app does not collect or sell personal information.
